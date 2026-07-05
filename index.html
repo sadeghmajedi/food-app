@@ -2,95 +2,131 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🍲 اپ مدیریت غذا</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Food Recorder">
+  <meta name="theme-color" content="#7dccae">
+  <title>🍲 Food Recorder</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%237dccae'/%3E%3Cg transform='translate(30,30)'%3E%3Cpath d='M30 30c0-8 8-15 20-15s20 7 20 15' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='30' cy='30' r='5' fill='%23fff'/%3E%3Cpath d='M60 30c0-8 8-15 20-15s20 7 20 15' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='60' cy='30' r='5' fill='%23fff'/%3E%3Cpath d='M90 30c0-8 8-15 20-15s20 7 20 15' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='90' cy='30' r='5' fill='%23fff'/%3E%3Crect x='20' y='35' width='100' height='12' rx='6' fill='%23fff'/%3E%3Crect x='35' y='50' width='70' height='8' rx='4' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
 </head>
 <body>
-  <div class="app-container">
+  <div id="splash">
+    <div class="splash-content">
+      <div class="splash-logo" id="splashLogo">
+        <svg viewBox="0 0 200 200" width="140" height="140">
+          <circle cx="80" cy="70" r="35" fill="#555" stroke="#333" stroke-width="2"/>
+          <ellipse cx="80" cy="130" rx="45" ry="40" fill="#444" stroke="#333" stroke-width="2"/>
+          <path d="M40 130 Q40 170 55 175 L105 175 Q120 170 120 130 L100 120 L80 125 L60 120 Z" fill="#333" stroke="#222" stroke-width="2"/>
+          <path d="M75 130 L80 140 L85 130 L83 165 L77 165 Z" fill="#111"/>
+          <text x="150" y="80" font-size="48" font-weight="bold" fill="#333" font-family="Arial">SSM</text>
+          <rect x="20" y="175" width="160" height="20" fill="#111"/>
+          <text x="100" y="190" font-size="9" fill="#fff" text-anchor="middle" font-family="Arial">SEYED SADEGH MAJEDI</text>
+        </svg>
+      </div>
+      <div class="splash-glow"></div>
+    </div>
+  </div>
+
+  <div class="app-container" id="appContainer" style="display:none;">
     <header>
-      <h1>🍲 اپ مدیریت غذا</h1>
-      <span class="version-badge">v1.0</span>
+      <div class="header-left">
+        <h1>🍲 Food Recorder</h1>
+        <span class="version-badge">v1.1</span>
+      </div>
+      <button class="header-settings" id="btnOpenSettings">⚙️</button>
     </header>
 
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="add">➕ ثبت غذا</button>
-      <button class="tab-btn" data-tab="history">📜 تاریخچه</button>
-      <button class="tab-btn" data-tab="stats">📊 آمار</button>
-      <button class="tab-btn" data-tab="groups">📂 گروه‌ها</button>
-      <button class="tab-btn" data-tab="settings">⚙️ تنظیمات</button>
-    </nav>
-
-    <section id="add" class="tab-content active">
-      <h2>ثبت غذای جدید</h2>
-      <div class="form-group">
-        <label>🍽️ نام غذا</label>
-        <input type="text" id="food-name" placeholder="مثلاً چلو قرمه سبزی">
+    <section id="main" class="tab-content active">
+      <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="🔍 جستجوی غذا..." class="search-input">
+        <select id="filterGroup" class="filter-select">
+          <option value="">📂 همه گروه‌ها</option>
+        </select>
+        <select id="filterMaker" class="filter-select">
+          <option value="">👨‍🍳 همه تهیه‌کننده‌ها</option>
+        </select>
       </div>
-      <div class="form-group">
-        <label>📂 گروه غذا</label>
-        <select id="food-group"></select>
-      </div>
-      <div class="form-group">
-        <label>📅 تاریخ صرف/تهیه</label>
-        <input type="text" id="food-date" placeholder="مثلاً 1405/04/14">
-      </div>
-      <div class="form-group">
-        <label>👨‍🍳 تهیه‌کننده / مکان</label>
-        <input type="text" id="food-maker" placeholder="مثلاً مادر / رستوران علی">
-      </div>
-      <button class="btn-primary" id="btn-add-food">✅ ثبت</button>
+      <div id="foodList"></div>
+      <button class="fab" id="btnOpenAdd">+</button>
     </section>
 
-    <section id="history" class="tab-content">
-      <h2>تاریخچه غذا</h2>
-      <div class="form-group">
-        <label>🔍 نام غذا را جستجو کنید</label>
-        <input type="text" id="search-food" placeholder="نام غذا...">
+    <div class="modal-overlay" id="addModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>➕ ثبت غذای جدید</h2>
+          <button class="modal-close" id="btnCloseAdd">✕</button>
+        </div>
+        <div class="form-group">
+          <label>🍽️ نام غذا</label>
+          <input type="text" id="foodName" placeholder="مثلاً چلو قرمه سبزی" autocomplete="off">
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+        <div class="form-group">
+          <label>📂 گروه غذا</label>
+          <select id="foodGroup"></select>
+        </div>
+        <div class="form-group">
+          <label>📅 تاریخ صرف/تهیه</label>
+          <input type="date" id="foodDate">
+        </div>
+        <div class="form-group">
+          <label>👨‍🍳 تهیه‌کننده / مکان</label>
+          <input type="text" id="foodMaker" placeholder="مثلاً مادر / رستوران علی">
+        </div>
+        <button class="btn-primary" id="btnAddFood">✅ ثبت</button>
       </div>
-      <div id="history-results"></div>
-    </section>
+    </div>
 
-    <section id="stats" class="tab-content">
-      <h2>📊 آمار تکرار غذاها</h2>
-      <div id="stats-results"></div>
-    </section>
-
-    <section id="groups" class="tab-content">
-      <h2>مدیریت گروه‌های غذا</h2>
-      <div class="form-group">
-        <label>➕ افزودن گروه جدید</label>
-        <div class="inline-form">
-          <input type="text" id="new-group-name" placeholder="نام گروه جدید...">
-          <button class="btn-primary" id="btn-add-group">➕</button>
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>⚙️ تنظیمات</h2>
+          <button class="modal-close" id="btnCloseSettings">✕</button>
+        </div>
+        <div class="settings-section">
+          <h3>📌 اطلاعات نسخه</h3>
+          <div class="info-row">
+            <span>نسخه فعلی:</span>
+            <strong>1.1</strong>
+          </div>
+          <button class="btn-secondary" id="btnCheckUpdate">🔍 چک آپدیت</button>
+          <div id="updateStatus"></div>
+        </div>
+        <div class="settings-section">
+          <h3>📂 مدیریت گروه‌های غذا</h3>
+          <div class="inline-form">
+            <input type="text" id="newGroupName" placeholder="نام گروه جدید...">
+            <button class="btn-primary btn-sm" id="btnAddGroup">➕</button>
+          </div>
+          <div id="groupsList"></div>
+        </div>
+        <div class="settings-section">
+          <h3>🎨 رنگ گروه‌ها</h3>
+          <div id="groupColorsList"></div>
+        </div>
+        <div class="settings-section">
+          <h3>💾 پشتیبان‌گیری</h3>
+          <button class="btn-secondary" id="btnExport">📥 دانلود فایل پشتیبان</button>
+          <hr>
+          <input type="file" id="importFile" accept=".json" style="display:none">
+          <button class="btn-secondary" id="btnImport">📤 بازیابی از فایل</button>
+        </div>
+        <div class="settings-section danger-section">
+          <h3>⚠️ پاک کردن همه داده‌ها</h3>
+          <button class="btn-danger" id="btnClearAll">🗑️ پاک کردن همه</button>
         </div>
       </div>
-      <div id="groups-list"></div>
-    </section>
+    </div>
 
-    <section id="settings" class="tab-content">
-      <h2>⚙️ تنظیمات</h2>
-      <div class="settings-card">
-        <h3>📌 اطلاعات نسخه</h3>
-        <p>نسخه فعلی اپ: <strong id="app-version">1.0</strong></p>
-        <button class="btn-secondary" id="btn-check-update">🔍 چک کردن آپدیت</button>
-        <div id="update-status"></div>
-      </div>
-      <div class="settings-card">
-        <h3>💾 پشتیبان‌گیری</h3>
-        <p>دریافت فایل پشتیبان از تمام داده‌ها:</p>
-        <button class="btn-secondary" id="btn-export">📥 دانلود فایل پشتیبان</button>
-        <hr>
-        <p>بازیابی داده‌ها از فایل پشتیبان:</p>
-        <input type="file" id="import-file" accept=".json" style="display:none">
-        <button class="btn-secondary" id="btn-import">📤 بازیابی از فایل</button>
-      </div>
-    </section>
+    <div id="toast" class="toast"></div>
 
     <footer>
-      <p>ساخته‌شده با ❤️ — اپ مدیریت غذا</p>
+      <p>ساخته‌شده با ❤️ — سید صادق ماجدی</p>
     </footer>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
