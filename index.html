@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍲 اپ مدیریت غذا</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>🍲 اپ مدیریت غذا</h1>
+      <span class="version-badge">v1.0</span>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="add">➕ ثبت غذا</button>
+      <button class="tab-btn" data-tab="history">📜 تاریخچه</button>
+      <button class="tab-btn" data-tab="stats">📊 آمار</button>
+      <button class="tab-btn" data-tab="groups">📂 گروه‌ها</button>
+      <button class="tab-btn" data-tab="settings">⚙️ تنظیمات</button>
+    </nav>
+
+    <section id="add" class="tab-content active">
+      <h2>ثبت غذای جدید</h2>
+      <div class="form-group">
+        <label>🍽️ نام غذا</label>
+        <input type="text" id="food-name" placeholder="مثلاً چلو قرمه سبزی">
+      </div>
+      <div class="form-group">
+        <label>📂 گروه غذا</label>
+        <select id="food-group"></select>
+      </div>
+      <div class="form-group">
+        <label>📅 تاریخ صرف/تهیه</label>
+        <input type="text" id="food-date" placeholder="مثلاً 1405/04/14">
+      </div>
+      <div class="form-group">
+        <label>👨‍🍳 تهیه‌کننده / مکان</label>
+        <input type="text" id="food-maker" placeholder="مثلاً مادر / رستوران علی">
+      </div>
+      <button class="btn-primary" id="btn-add-food">✅ ثبت</button>
+    </section>
+
+    <section id="history" class="tab-content">
+      <h2>تاریخچه غذا</h2>
+      <div class="form-group">
+        <label>🔍 نام غذا را جستجو کنید</label>
+        <input type="text" id="search-food" placeholder="نام غذا...">
+      </div>
+      <div id="history-results"></div>
+    </section>
+
+    <section id="stats" class="tab-content">
+      <h2>📊 آمار تکرار غذاها</h2>
+      <div id="stats-results"></div>
+    </section>
+
+    <section id="groups" class="tab-content">
+      <h2>مدیریت گروه‌های غذا</h2>
+      <div class="form-group">
+        <label>➕ افزودن گروه جدید</label>
+        <div class="inline-form">
+          <input type="text" id="new-group-name" placeholder="نام گروه جدید...">
+          <button class="btn-primary" id="btn-add-group">➕</button>
+        </div>
+      </div>
+      <div id="groups-list"></div>
+    </section>
+
+    <section id="settings" class="tab-content">
+      <h2>⚙️ تنظیمات</h2>
+      <div class="settings-card">
+        <h3>📌 اطلاعات نسخه</h3>
+        <p>نسخه فعلی اپ: <strong id="app-version">1.0</strong></p>
+        <button class="btn-secondary" id="btn-check-update">🔍 چک کردن آپدیت</button>
+        <div id="update-status"></div>
+      </div>
+      <div class="settings-card">
+        <h3>💾 پشتیبان‌گیری</h3>
+        <p>دریافت فایل پشتیبان از تمام داده‌ها:</p>
+        <button class="btn-secondary" id="btn-export">📥 دانلود فایل پشتیبان</button>
+        <hr>
+        <p>بازیابی داده‌ها از فایل پشتیبان:</p>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+        <button class="btn-secondary" id="btn-import">📤 بازیابی از فایل</button>
+      </div>
+    </section>
+
+    <footer>
+      <p>ساخته‌شده با ❤️ — اپ مدیریت غذا</p>
+    </footer>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
