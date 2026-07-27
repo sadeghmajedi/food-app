@@ -51,6 +51,12 @@ body {
   filter: drop-shadow(0 0 20px rgba(255,255,255,0.6));
 }
 
+.splash-logo-img {
+  width: min(78vw, 340px);
+  height: auto;
+  display: block;
+}
+
 .splash-glow {
   position: absolute;
   width: 200px;
@@ -120,6 +126,20 @@ header h1 {
   padding: 3px 10px;
   border-radius: 20px;
   backdrop-filter: blur(10px);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
 }
 
 .header-settings {
@@ -253,7 +273,7 @@ header h1 {
 }
 
 .food-details.open {
-  max-height: 500px;
+  max-height: 800px;
 }
 
 .food-detail-entry {
@@ -278,6 +298,40 @@ header h1 {
 .food-detail-entry .detail-value {
   font-weight: 600;
   color: var(--text);
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn-icon-sm {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 0.75rem;
+  border: 1.5px solid #dde5ec;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.btn-icon-sm:hover {
+  border-color: var(--primary);
+  background: #f9fbfc;
+}
+
+.btn-icon-danger {
+  border-color: var(--danger);
+  color: var(--danger-dark);
+}
+
+.btn-icon-danger:hover {
+  background: var(--danger);
+  color: #fff;
 }
 
 .fab {
@@ -646,6 +700,36 @@ header h1 {
 .toast.success { background: var(--primary-dark); }
 .toast.error { background: var(--danger-dark); }
 
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--primary-dark);
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 600;
+  box-shadow: var(--shadow);
+}
+
+.update-banner button {
+  background: #fff;
+  color: var(--primary-dark);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 footer {
   text-align: center;
   padding: 16px;
@@ -660,6 +744,99 @@ footer {
   max-width: 600px;
   margin: 0 auto;
   z-index: 40;
+}
+
+/* ==================== صفحه آمار ==================== */
+.stats-back-wrap {
+  padding: 14px 16px 0;
+}
+
+.stats-back-btn {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 16px;
+  font-size: 0.82rem;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+}
+
+.stat-card {
+  flex: 1;
+  background: #f7fafc;
+  border: 1px solid #e8eef2;
+  border-radius: 14px;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.stats-block {
+  padding: 4px 16px 20px;
+}
+
+.stats-heading {
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.stats-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-bar-name {
+  width: 34%;
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-bar-track {
+  flex: 1;
+  background: #f0f5f9;
+  border-radius: 10px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  transition: width 0.5s ease;
+}
+
+.stat-bar-count {
+  width: 40px;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-light);
 }
 
 .empty-msg {
