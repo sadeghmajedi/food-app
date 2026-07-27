@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.3";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -21,6 +21,77 @@ const DEFAULT_GROUP_COLORS = {
   "صبحانه": "#d4b896",
   "سوپ و آش": "#c8b5e8",
 };
+
+// وضعیت ویرایش: اگر مقدار داشته باشد یعنی در حال ویرایش یک رکورد موجودیم
+let editingFoodId = null;
+let swRegistration = null;
+
+// ==================== Service Worker (کش آفلاین + بروزرسانی خودکار) ====================
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      swRegistration = reg;
+
+      // اگر همین الان یک نسخهٔ جدید در انتظار فعال‌سازی است
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showUpdateBanner();
+      }
+
+      // وقتی یک Service Worker جدید پیدا و نصب می‌شود
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            showUpdateBanner();
+          }
+        });
+      });
+    }).catch((err) => {
+      console.warn("ثبت Service Worker ناموفق بود:", err);
+    });
+
+    // وقتی نسخهٔ جدید فعال شد، صفحه فقط یک‌بار رفرش شود
+    let alreadyRefreshed = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (alreadyRefreshed) return;
+      alreadyRefreshed = true;
+      window.location.reload();
+    });
+  });
+}
+
+function showUpdateBanner() {
+  if (document.getElementById("updateBanner")) return;
+  const banner = document.createElement("div");
+  banner.id = "updateBanner";
+  banner.className = "update-banner";
+  banner.innerHTML = '🆕 نسخهٔ جدید اپ آماده است <button id="btnApplyUpdate">اعمال و بارگذاری مجدد</button>';
+  document.body.appendChild(banner);
+  document.getElementById("btnApplyUpdate").addEventListener("click", () => {
+    if (swRegistration && swRegistration.waiting) {
+      swRegistration.waiting.postMessage("SKIP_WAITING");
+    }
+  });
+}
+
+// ==================== ابزار امنیتی (escape) ====================
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
+function generateId() {
+  if (window.crypto && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+}
 
 // ==================== مدیریت ذخیره‌سازی ====================
 function getData(key, def) {
@@ -45,21 +116,40 @@ function loadGroupColors() {
 }
 function saveGroupColors(c) { setData("groupColors", c); }
 
+// ==================== مهاجرت داده‌های قدیمی (افزودن id) ====================
+function migrateFoodIds() {
+  const foods = loadFoods();
+  let migrated = false;
+  foods.forEach((f) => {
+    if (!f.id) {
+      f.id = generateId();
+      migrated = true;
+    }
+  });
+  if (migrated) saveFoods(foods);
+}
+
 // ==================== راه‌اندازی ====================
 document.addEventListener("DOMContentLoaded", () => {
   if (!localStorage.getItem("groups")) saveGroups([...DEFAULT_GROUPS]);
   if (!localStorage.getItem("groupColors")) saveGroupColors({ ...DEFAULT_GROUP_COLORS });
+  migrateFoodIds();
+
+  document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
+  document.getElementById("currentVersionText").textContent = APP_VERSION;
 
   setTimeout(() => {
     document.getElementById("splash").style.display = "none";
     document.getElementById("appContainer").style.display = "block";
   }, 2800);
 
-  document.getElementById("btnOpenAdd").addEventListener("click", openAddModal);
+  document.getElementById("btnOpenAdd").addEventListener("click", () => openAddModal());
   document.getElementById("btnCloseAdd").addEventListener("click", closeAddModal);
+  document.getElementById("btnOpenStats").addEventListener("click", openStatsTab);
+  document.getElementById("btnBackFromStats").addEventListener("click", closeStatsTab);
   document.getElementById("btnOpenSettings").addEventListener("click", openSettingsModal);
   document.getElementById("btnCloseSettings").addEventListener("click", closeSettingsModal);
-  document.getElementById("btnAddFood").addEventListener("click", addFood);
+  document.getElementById("btnAddFood").addEventListener("click", saveFoodEntry);
   document.getElementById("btnAddGroup").addEventListener("click", addGroup);
   document.getElementById("btnCheckUpdate").addEventListener("click", checkUpdate);
   document.getElementById("btnExport").addEventListener("click", exportBackup);
@@ -76,6 +166,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("foodName").addEventListener("input", showSuggestions);
   document.getElementById("foodName").addEventListener("blur", () => {
     setTimeout(() => { document.getElementById("suggestions").classList.remove("show"); }, 200);
+  });
+
+  document.getElementById("foodMaker").addEventListener("input", showMakerSuggestions);
+  document.getElementById("foodMaker").addEventListener("blur", () => {
+    setTimeout(() => { document.getElementById("makerSuggestions").classList.remove("show"); }, 200);
   });
 
   const today = new Date().toISOString().split("T")[0];
@@ -102,11 +197,34 @@ function showToast(msg, type = "") {
   setTimeout(() => { toast.className = "toast"; }, 2500);
 }
 
-// ==================== مودال‌ها ====================
+// ==================== مودال ثبت/ویرایش ====================
 function openAddModal() {
-  document.getElementById("addModal").classList.add("show");
+  editingFoodId = null;
+  document.getElementById("addModalTitle").textContent = "➕ ثبت غذای جدید";
+  document.getElementById("btnAddFood").textContent = "✅ ثبت";
+  document.getElementById("foodName").value = "";
+  document.getElementById("foodMaker").value = "";
+  document.getElementById("foodGroup").value = "";
   const today = new Date().toISOString().split("T")[0];
   document.getElementById("foodDate").value = today;
+  document.getElementById("addModal").classList.add("show");
+}
+
+function openEditFood(id) {
+  const foods = loadFoods();
+  const food = foods.find((f) => f.id === id);
+  if (!food) {
+    showToast("❌ رکورد یافت نشد", "error");
+    return;
+  }
+  editingFoodId = id;
+  document.getElementById("addModalTitle").textContent = "✏️ ویرایش غذا";
+  document.getElementById("btnAddFood").textContent = "💾 ذخیره تغییرات";
+  document.getElementById("foodName").value = food.name;
+  document.getElementById("foodGroup").value = food.group;
+  document.getElementById("foodDate").value = food.date;
+  document.getElementById("foodMaker").value = food.maker === "نامشخص" ? "" : food.maker;
+  document.getElementById("addModal").classList.add("show");
 }
 
 function closeAddModal() {
@@ -114,6 +232,64 @@ function closeAddModal() {
   document.getElementById("foodName").value = "";
   document.getElementById("foodMaker").value = "";
   document.getElementById("suggestions").classList.remove("show");
+  document.getElementById("makerSuggestions").classList.remove("show");
+  editingFoodId = null;
+  document.getElementById("addModalTitle").textContent = "➕ ثبت غذای جدید";
+  document.getElementById("btnAddFood").textContent = "✅ ثبت";
+}
+
+// ==================== صفحه آمار ====================
+function openStatsTab() {
+  document.getElementById("main").classList.remove("active");
+  document.getElementById("statsSection").classList.add("active");
+  renderStats();
+}
+
+function closeStatsTab() {
+  document.getElementById("statsSection").classList.remove("active");
+  document.getElementById("main").classList.add("active");
+}
+
+function countBy(items, keyFn) {
+  const counts = {};
+  items.forEach((item) => {
+    const key = keyFn(item);
+    if (!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+}
+
+function renderBarList(containerId, entries) {
+  const container = document.getElementById(containerId);
+  if (entries.length === 0) {
+    container.innerHTML = '<div class="empty-msg">📭 داده‌ای برای نمایش وجود ندارد.</div>';
+    return;
+  }
+  const max = entries[0][1];
+  container.innerHTML = entries.map(([label, count]) => {
+    const pct = Math.max(6, Math.round((count / max) * 100));
+    return `<div class="stat-bar-row">
+      <span class="stat-bar-name" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
+      <span class="stat-bar-count">${count}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderStats() {
+  const foods = loadFoods();
+
+  document.getElementById("statTotalRecords").textContent = foods.length;
+  document.getElementById("statUniqueFoods").textContent = new Set(foods.map(f => f.name)).size;
+  document.getElementById("statUniqueMakers").textContent =
+    new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص")).size;
+
+  const foodCounts = countBy(foods, f => f.name);
+  const makerCounts = countBy(foods, f => f.maker && f.maker !== "نامشخص" ? f.maker : null);
+
+  renderBarList("statsFoodList", foodCounts);
+  renderBarList("statsMakerList", makerCounts);
 }
 
 function openSettingsModal() {
@@ -129,25 +305,30 @@ function closeSettingsModal() {
 // ==================== Dropdown گروه‌ها ====================
 function refreshGroupDropdowns() {
   const groups = loadGroups();
-  const colors = loadGroupColors();
 
   const sel1 = document.getElementById("foodGroup");
+  const prevVal1 = sel1.value;
   sel1.innerHTML = '<option value="">— انتخاب گروه —</option>' +
-    groups.map(g => `<option value="${g}">${g}</option>`).join("");
+    groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
+  sel1.value = prevVal1;
 
   const sel2 = document.getElementById("filterGroup");
+  const prevVal2 = sel2.value;
   sel2.innerHTML = '<option value="">📂 همه گروه‌ها</option>' +
-    groups.map(g => `<option value="${g}">${g}</option>`).join("");
+    groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
+  sel2.value = prevVal2;
 
   const foods = loadFoods();
   const makers = [...new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"))];
   const sel3 = document.getElementById("filterMaker");
+  const prevVal3 = sel3.value;
   sel3.innerHTML = '<option value="">👨‍🍳 همه تهیه‌کننده‌ها</option>' +
-    makers.map(m => `<option value="${m}">${m}</option>`).join("");
+    makers.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
+  sel3.value = prevVal3;
 }
 
-// ==================== ثبت غذا ====================
-function addFood() {
+// ==================== ثبت/ویرایش غذا ====================
+function saveFoodEntry() {
   const name = document.getElementById("foodName").value.trim();
   const group = document.getElementById("foodGroup").value;
   const date = document.getElementById("foodDate").value;
@@ -158,7 +339,28 @@ function addFood() {
   if (!date) { showToast("⚠️ تاریخ را انتخاب کنید", "error"); return; }
 
   const foods = loadFoods();
+
+  if (editingFoodId) {
+    const idx = foods.findIndex(f => f.id === editingFoodId);
+    if (idx === -1) {
+      showToast("❌ رکورد یافت نشد", "error");
+      return;
+    }
+    foods[idx] = {
+      ...foods[idx],
+      name, group, date,
+      maker: maker || "نامشخص",
+    };
+    saveFoods(foods);
+    closeAddModal();
+    refreshGroupDropdowns();
+    renderFoodList();
+    showToast("✅ تغییرات ذخیره شد!", "success");
+    return;
+  }
+
   foods.push({
+    id: generateId(),
     name, group,
     date: date,
     maker: maker || "نامشخص",
@@ -172,7 +374,17 @@ function addFood() {
   showToast("✅ غذا ثبت شد!", "success");
 }
 
-// ==================== پیشنهادات هوشمند ====================
+function deleteFoodRecord(id) {
+  if (!confirm("آیا از حذف این رکورد مطمئن هستید؟")) return;
+  let foods = loadFoods();
+  foods = foods.filter(f => f.id !== id);
+  saveFoods(foods);
+  refreshGroupDropdowns();
+  renderFoodList();
+  showToast("✅ رکورد حذف شد!", "success");
+}
+
+// ==================== پیشنهادات هوشمند (نام غذا) ====================
 function showSuggestions() {
   const query = document.getElementById("foodName").value.trim().toLowerCase();
   const suggDiv = document.getElementById("suggestions");
@@ -192,7 +404,7 @@ function showSuggestions() {
   }
 
   suggDiv.innerHTML = matches.map(n =>
-    `<div class="suggestion-item" onclick="selectSuggestion('${n.replace(/'/g, "\\'")}')">🍽️ ${n}</div>`
+    `<div class="suggestion-item" onclick="selectSuggestion('${n.replace(/'/g, "\\'")}')">🍽️ ${escapeHtml(n)}</div>`
   ).join("");
   suggDiv.classList.add("show");
 }
@@ -206,6 +418,36 @@ function selectSuggestion(name) {
   if (existing) {
     document.getElementById("foodGroup").value = existing.group;
   }
+}
+
+// ==================== پیشنهادات هوشمند (تهیه‌کننده / مکان) ====================
+function showMakerSuggestions() {
+  const query = document.getElementById("foodMaker").value.trim().toLowerCase();
+  const suggDiv = document.getElementById("makerSuggestions");
+
+  if (query.length < 1) {
+    suggDiv.classList.remove("show");
+    return;
+  }
+
+  const foods = loadFoods();
+  const allMakers = [...new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"))];
+  const matches = allMakers.filter(m => m.toLowerCase().includes(query));
+
+  if (matches.length === 0) {
+    suggDiv.classList.remove("show");
+    return;
+  }
+
+  suggDiv.innerHTML = matches.map(m =>
+    `<div class="suggestion-item" onclick="selectMakerSuggestion('${m.replace(/'/g, "\\'")}')">👨‍🍳 ${escapeHtml(m)}</div>`
+  ).join("");
+  suggDiv.classList.add("show");
+}
+
+function selectMakerSuggestion(name) {
+  document.getElementById("foodMaker").value = name;
+  document.getElementById("makerSuggestions").classList.remove("show");
 }
 
 // ==================== نمایش لیست غذاها ====================
@@ -259,7 +501,7 @@ function renderFoodList() {
     html += `<div class="food-item">
       <div class="food-header" onclick="toggleDetails(this)">
         <div class="food-icon" style="background:${groupColor}20; color:${groupColor};">🍽️</div>
-        <span class="food-name">${name}</span>
+        <span class="food-name">${escapeHtml(name)}</span>
         <span class="food-count">${count} بار</span>
         <span class="food-arrow">▼</span>
       </div>
@@ -268,8 +510,12 @@ function renderFoodList() {
     records.forEach(r => {
       html += `<div class="food-detail-entry">
         <div class="detail-row"><span class="detail-label">📅 تاریخ:</span><span class="detail-value">${formatDate(r.date)}</span></div>
-        <div class="detail-row"><span class="detail-label">📂 گروه:</span><span class="detail-value">${r.group}</span></div>
-        <div class="detail-row"><span class="detail-label">👨‍🍳 تهیه:</span><span class="detail-value">${r.maker}</span></div>
+        <div class="detail-row"><span class="detail-label">📂 گروه:</span><span class="detail-value">${escapeHtml(r.group)}</span></div>
+        <div class="detail-row"><span class="detail-label">👨‍🍳 تهیه:</span><span class="detail-value">${escapeHtml(r.maker)}</span></div>
+        <div class="detail-actions">
+          <button class="btn-icon-sm" onclick="openEditFood('${r.id}')">✏️ ویرایش</button>
+          <button class="btn-icon-sm btn-icon-danger" onclick="deleteFoodRecord('${r.id}')">🗑️ حذف</button>
+        </div>
       </div>`;
     });
 
@@ -307,7 +553,7 @@ function renderGroupsInSettings() {
 
   container.innerHTML = groups.map((g, i) =>
     `<div class="group-item">
-      <span class="g-name">📂 ${g}</span>
+      <span class="g-name">📂 ${escapeHtml(g)}</span>
       <button class="btn-delete-sm" onclick="deleteGroup(${i})">🗑️ حذف</button>
     </div>`
   ).join("");
@@ -361,7 +607,7 @@ function renderGroupColorPickers() {
 
   container.innerHTML = groups.map(g =>
     `<div class="color-picker-row">
-      <span class="color-label">📂 ${g}</span>
+      <span class="color-label">📂 ${escapeHtml(g)}</span>
       <input type="color" value="${colors[g] || '#7dccae'}" onchange="updateGroupColor('${g.replace(/'/g, "\\'")}', this.value)">
     </div>`
   ).join("");
@@ -376,12 +622,35 @@ function updateGroupColor(groupName, color) {
 }
 
 // ==================== آپدیت ====================
-function checkUpdate() {
+async function checkUpdate() {
   const status = document.getElementById("updateStatus");
   status.style.display = "block";
-  status.style.background = "#fff3cd";
-  status.style.color = "#856404";
-  status.innerHTML = "ℹ️ برای بررسی آپدیت، از طریق پلتفرم هوشا (hoosha.com) نسخه جدید را دریافت کنید.<br>نسخه فعلی شما: " + APP_VERSION;
+  status.style.background = "#eef6f2";
+  status.style.color = "#3a4a5a";
+  status.innerHTML = "🔄 در حال بررسی آپدیت...";
+
+  try {
+    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("bad response");
+    const data = await res.json();
+    const remoteVersion = data.version;
+    if (!remoteVersion) throw new Error("no version field");
+
+    if (remoteVersion === APP_VERSION) {
+      status.style.background = "#e6f7ee";
+      status.style.color = "#2f7a52";
+      status.innerHTML = "✅ شما از آخرین نسخه استفاده می‌کنید (نسخه " + APP_VERSION + ")";
+    } else {
+      status.style.background = "#fff3cd";
+      status.style.color = "#856404";
+      status.innerHTML = "🆕 نسخهٔ جدیدی موجود است: " + escapeHtml(remoteVersion) +
+        " (نسخهٔ فعلی شما: " + APP_VERSION + ")<br>برای دریافت نسخهٔ جدید، صفحه را کاملاً ببندید و از لینک اپ دوباره باز کنید.";
+    }
+  } catch (err) {
+    status.style.background = "#fdecea";
+    status.style.color = "#b3261e";
+    status.innerHTML = "❌ بررسی آپدیت ممکن نشد (اتصال اینترنت را بررسی کنید).<br>نسخهٔ فعلی شما: " + APP_VERSION;
+  }
 }
 
 // ==================== پشتیبان‌گیری ====================
@@ -421,6 +690,7 @@ function importBackup(e) {
       if (data.groups && Array.isArray(data.groups)) saveGroups(data.groups);
       if (data.groupColors) saveGroupColors(data.groupColors);
 
+      migrateFoodIds();
       refreshGroupDropdowns();
       renderFoodList();
       renderGroupsInSettings();
