@@ -9,21 +9,14 @@
   <meta name="theme-color" content="#7dccae">
   <title>🍲 Food Recorder</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%237dccae'/%3E%3Cg transform='translate(30,30)'%3E%3Cpath d='M30 30c0-8 8-15 20-15s20 7 20 15' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='30' cy='30' r='5' fill='%23fff'/%3E%3Cpath d='M60 30c0-8 8-15 20-15s20 7 20 15' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='60' cy='30' r='5' fill='%23fff'/%3E%3Cpath d='M90 30c0-8 8-15 20-15s20 7 20 15' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='90' cy='30' r='5' fill='%23fff'/%3E%3Crect x='20' y='35' width='100' height='12' rx='6' fill='%23fff'/%3E%3Crect x='35' y='50' width='70' height='8' rx='4' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='180' y2='180' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%238dd9b8'/%3E%3Cstop offset='1' stop-color='%235dbb9a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='url(%23bg)'/%3E%3Cpath d='M62 66 Q56 52 64 42 Q72 32 66 18' stroke='%23ffffff' stroke-width='7' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3Cpath d='M90 66 Q84 50 92 40 Q100 30 94 16' stroke='%23ffffff' stroke-width='7' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3Cpath d='M118 66 Q112 52 120 42 Q128 32 122 18' stroke='%23ffffff' stroke-width='7' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3Cpath d='M32 96 Q32 148 90 148 Q148 148 148 96 Z' fill='%23ffffff'/%3E%3Cellipse cx='90' cy='149' rx='34' ry='6' fill='%233a4a5a' opacity='0.12'/%3E%3Cellipse cx='90' cy='96' rx='58' ry='16' fill='%23eef6f0'/%3E%3Ccircle cx='70' cy='93' r='6' fill='%23ffb5a7'/%3E%3Ccircle cx='95' cy='99' r='5' fill='%23c5e8a0'/%3E%3Ccircle cx='112' cy='90' r='5.5' fill='%23e1b324'/%3E%3Ccircle cx='82' cy='88' r='4' fill='%237dccae'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='bg2' x1='0' y1='0' x2='180' y2='180' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%238dd9b8'/%3E%3Cstop offset='1' stop-color='%235dbb9a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='url(%23bg2)'/%3E%3Cpath d='M62 66 Q56 52 64 42 Q72 32 66 18' stroke='%23ffffff' stroke-width='7' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3Cpath d='M90 66 Q84 50 92 40 Q100 30 94 16' stroke='%23ffffff' stroke-width='7' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3Cpath d='M118 66 Q112 52 120 42 Q128 32 122 18' stroke='%23ffffff' stroke-width='7' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3Cpath d='M32 96 Q32 148 90 148 Q148 148 148 96 Z' fill='%23ffffff'/%3E%3Cellipse cx='90' cy='149' rx='34' ry='6' fill='%233a4a5a' opacity='0.12'/%3E%3Cellipse cx='90' cy='96' rx='58' ry='16' fill='%23eef6f0'/%3E%3Ccircle cx='70' cy='93' r='6' fill='%23ffb5a7'/%3E%3Ccircle cx='95' cy='99' r='5' fill='%23c5e8a0'/%3E%3Ccircle cx='112' cy='90' r='5.5' fill='%23e1b324'/%3E%3Ccircle cx='82' cy='88' r='4' fill='%237dccae'/%3E%3C/svg%3E">
 </head>
 <body>
   <div id="splash">
     <div class="splash-content">
       <div class="splash-logo" id="splashLogo">
-        <svg viewBox="0 0 200 200" width="140" height="140">
-          <circle cx="80" cy="70" r="35" fill="#555" stroke="#333" stroke-width="2"/>
-          <ellipse cx="80" cy="130" rx="45" ry="40" fill="#444" stroke="#333" stroke-width="2"/>
-          <path d="M40 130 Q40 170 55 175 L105 175 Q120 170 120 130 L100 120 L80 125 L60 120 Z" fill="#333" stroke="#222" stroke-width="2"/>
-          <path d="M75 130 L80 140 L85 130 L83 165 L77 165 Z" fill="#111"/>
-          <text x="150" y="80" font-size="48" font-weight="bold" fill="#333" font-family="Arial">SSM</text>
-          <rect x="20" y="175" width="160" height="20" fill="#111"/>
-          <text x="100" y="190" font-size="9" fill="#fff" text-anchor="middle" font-family="Arial">SEYED SADEGH MAJEDI</text>
-        </svg>
+        <img src="logo.png" alt="Seyed Sadegh Majedi" class="splash-logo-img">
       </div>
       <div class="splash-glow"></div>
     </div>
@@ -33,9 +26,12 @@
     <header>
       <div class="header-left">
         <h1>🍲 Food Recorder</h1>
-        <span class="version-badge">v1.1</span>
+        <span class="version-badge" id="versionBadge">v1.1</span>
       </div>
-      <button class="header-settings" id="btnOpenSettings">⚙️</button>
+      <div class="header-actions">
+        <button class="header-settings" id="btnOpenStats" title="آمار">📊</button>
+        <button class="header-settings" id="btnOpenSettings" title="تنظیمات">⚙️</button>
+      </div>
     </header>
 
     <section id="main" class="tab-content active">
@@ -52,10 +48,40 @@
       <button class="fab" id="btnOpenAdd">+</button>
     </section>
 
+    <section id="statsSection" class="tab-content">
+      <div class="stats-back-wrap">
+        <button class="btn-secondary stats-back-btn" id="btnBackFromStats">‹ بازگشت به لیست</button>
+      </div>
+      <div class="stats-summary">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotalRecords">0</div>
+          <div class="stat-label">کل ثبت‌ها</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statUniqueFoods">0</div>
+          <div class="stat-label">غذای متفاوت</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statUniqueMakers">0</div>
+          <div class="stat-label">تهیه‌کننده/مکان</div>
+        </div>
+      </div>
+
+      <div class="stats-block">
+        <h3 class="stats-heading">🍽️ پرتکرارترین غذاها</h3>
+        <div id="statsFoodList" class="stats-bar-list"></div>
+      </div>
+
+      <div class="stats-block">
+        <h3 class="stats-heading">👨‍🍳 پرتکرارترین تهیه‌کننده / مکان</h3>
+        <div id="statsMakerList" class="stats-bar-list"></div>
+      </div>
+    </section>
+
     <div class="modal-overlay" id="addModal">
       <div class="modal">
         <div class="modal-header">
-          <h2>➕ ثبت غذای جدید</h2>
+          <h2 id="addModalTitle">➕ ثبت غذای جدید</h2>
           <button class="modal-close" id="btnCloseAdd">✕</button>
         </div>
         <div class="form-group">
@@ -73,7 +99,8 @@
         </div>
         <div class="form-group">
           <label>👨‍🍳 تهیه‌کننده / مکان</label>
-          <input type="text" id="foodMaker" placeholder="مثلاً مادر / رستوران علی">
+          <input type="text" id="foodMaker" placeholder="مثلاً مادر / رستوران علی" autocomplete="off">
+          <div id="makerSuggestions" class="suggestions"></div>
         </div>
         <button class="btn-primary" id="btnAddFood">✅ ثبت</button>
       </div>
@@ -89,7 +116,7 @@
           <h3>📌 اطلاعات نسخه</h3>
           <div class="info-row">
             <span>نسخه فعلی:</span>
-            <strong>1.1</strong>
+            <strong id="currentVersionText">1.1</strong>
           </div>
           <button class="btn-secondary" id="btnCheckUpdate">🔍 چک آپدیت</button>
           <div id="updateStatus"></div>
@@ -123,7 +150,7 @@
     <div id="toast" class="toast"></div>
 
     <footer>
-      <p>ساخته‌شده با ❤️ — سید صادق ماجدی</p>
+      <p>ساخته‌شده با ❤️ — سید صادق مجدی</p>
     </footer>
   </div>
 
