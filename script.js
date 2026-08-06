@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -168,6 +168,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { document.getElementById("suggestions").classList.remove("show"); }, 200);
   });
 
+  document.getElementById("foodServing").addEventListener("input", showServingSuggestions);
+  document.getElementById("foodServing").addEventListener("blur", () => {
+    setTimeout(() => { document.getElementById("servingSuggestions").classList.remove("show"); }, 200);
+  });
+
   document.getElementById("foodMaker").addEventListener("input", showMakerSuggestions);
   document.getElementById("foodMaker").addEventListener("blur", () => {
     setTimeout(() => { document.getElementById("makerSuggestions").classList.remove("show"); }, 200);
@@ -204,6 +209,7 @@ function openAddModal() {
   document.getElementById("btnAddFood").textContent = "✅ ثبت";
   document.getElementById("foodName").value = "";
   document.getElementById("foodMaker").value = "";
+  document.getElementById("foodServing").value = "";
   document.getElementById("foodGroup").value = "";
   const today = new Date().toISOString().split("T")[0];
   document.getElementById("foodDate").value = today;
@@ -224,6 +230,7 @@ function openEditFood(id) {
   document.getElementById("foodGroup").value = food.group;
   document.getElementById("foodDate").value = food.date;
   document.getElementById("foodMaker").value = food.maker === "نامشخص" ? "" : food.maker;
+  document.getElementById("foodServing").value = food.serving || "";
   document.getElementById("addModal").classList.add("show");
 }
 
@@ -231,8 +238,10 @@ function closeAddModal() {
   document.getElementById("addModal").classList.remove("show");
   document.getElementById("foodName").value = "";
   document.getElementById("foodMaker").value = "";
+  document.getElementById("foodServing").value = "";
   document.getElementById("suggestions").classList.remove("show");
   document.getElementById("makerSuggestions").classList.remove("show");
+  document.getElementById("servingSuggestions").classList.remove("show");
   editingFoodId = null;
   document.getElementById("addModalTitle").textContent = "➕ ثبت غذای جدید";
   document.getElementById("btnAddFood").textContent = "✅ ثبت";
@@ -303,8 +312,13 @@ function closeSettingsModal() {
 }
 
 // ==================== Dropdown گروه‌ها ====================
+// مرتب‌سازی الفبایی با پشتیبانی از حروف فارسی
+function sortAlpha(arr) {
+  return [...arr].sort((a, b) => String(a).localeCompare(String(b), "fa"));
+}
+
 function refreshGroupDropdowns() {
-  const groups = loadGroups();
+  const groups = sortAlpha(loadGroups());
 
   const sel1 = document.getElementById("foodGroup");
   const prevVal1 = sel1.value;
@@ -319,7 +333,7 @@ function refreshGroupDropdowns() {
   sel2.value = prevVal2;
 
   const foods = loadFoods();
-  const makers = [...new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"))];
+  const makers = sortAlpha([...new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"))]);
   const sel3 = document.getElementById("filterMaker");
   const prevVal3 = sel3.value;
   sel3.innerHTML = '<option value="">👨‍🍳 همه تهیه‌کننده‌ها</option>' +
@@ -333,6 +347,7 @@ function saveFoodEntry() {
   const group = document.getElementById("foodGroup").value;
   const date = document.getElementById("foodDate").value;
   const maker = document.getElementById("foodMaker").value.trim();
+  const serving = document.getElementById("foodServing").value.trim();
 
   if (!name) { showToast("⚠️ نام غذا را وارد کنید", "error"); return; }
   if (!group) { showToast("⚠️ گروه غذا را انتخاب کنید", "error"); return; }
@@ -350,6 +365,7 @@ function saveFoodEntry() {
       ...foods[idx],
       name, group, date,
       maker: maker || "نامشخص",
+      serving: serving,
     };
     saveFoods(foods);
     closeAddModal();
@@ -364,6 +380,7 @@ function saveFoodEntry() {
     name, group,
     date: date,
     maker: maker || "نامشخص",
+    serving: serving,
     timestamp: Date.now(),
   });
   saveFoods(foods);
@@ -450,6 +467,36 @@ function selectMakerSuggestion(name) {
   document.getElementById("makerSuggestions").classList.remove("show");
 }
 
+// ==================== پیشنهادات هوشمند (نحوه صرف غذا) ====================
+function showServingSuggestions() {
+  const query = document.getElementById("foodServing").value.trim().toLowerCase();
+  const suggDiv = document.getElementById("servingSuggestions");
+
+  if (query.length < 1) {
+    suggDiv.classList.remove("show");
+    return;
+  }
+
+  const foods = loadFoods();
+  const allServings = [...new Set(foods.map(f => f.serving).filter(v => v))];
+  const matches = allServings.filter(v => v.toLowerCase().includes(query));
+
+  if (matches.length === 0) {
+    suggDiv.classList.remove("show");
+    return;
+  }
+
+  suggDiv.innerHTML = matches.map(v =>
+    `<div class="suggestion-item" onclick="selectServingSuggestion('${v.replace(/'/g, "\\'")}')">🍚 ${escapeHtml(v)}</div>`
+  ).join("");
+  suggDiv.classList.add("show");
+}
+
+function selectServingSuggestion(value) {
+  document.getElementById("foodServing").value = value;
+  document.getElementById("servingSuggestions").classList.remove("show");
+}
+
 // ==================== نمایش لیست غذاها ====================
 function renderFoodList() {
   const searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
@@ -480,46 +527,67 @@ function renderFoodList() {
     return;
   }
 
+  // گروه‌بندی رکوردها بر اساس نام غذا
   const grouped = {};
   filtered.forEach(f => {
     if (!grouped[f.name]) grouped[f.name] = [];
     grouped[f.name].push(f);
   });
 
-  const sortedNames = Object.keys(grouped).sort((a, b) => {
-    const aDates = grouped[a].map(f => f.date).sort().reverse();
-    const bDates = grouped[b].map(f => f.date).sort().reverse();
-    return bDates[0].localeCompare(aDates[0]);
+  // هر غذا زیر «آخرین تاریخ تهیه»‌اش قرار می‌گیرد
+  const byDate = {};
+  Object.keys(grouped).forEach(name => {
+    const records = grouped[name].sort((a, b) => b.date.localeCompare(a.date));
+    const latestDate = records[0].date;
+    if (!byDate[latestDate]) byDate[latestDate] = [];
+    byDate[latestDate].push({ name, records });
   });
 
+  // تاریخ‌ها از جدید به قدیم
+  const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+
   let html = "";
-  sortedNames.forEach(name => {
-    const records = grouped[name].sort((a, b) => b.date.localeCompare(a.date));
-    const count = records.length;
-    const groupColor = colors[records[0].group] || "#7dccae";
+  sortedDates.forEach(date => {
+    html += `<div class="date-group">
+      <div class="date-header">📅 ${formatDate(date)}</div>`;
 
-    html += `<div class="food-item">
-      <div class="food-header" onclick="toggleDetails(this)">
-        <div class="food-icon" style="background:${groupColor}20; color:${groupColor};">🍽️</div>
-        <span class="food-name">${escapeHtml(name)}</span>
-        <span class="food-count">${count} بار</span>
-        <span class="food-arrow">▼</span>
-      </div>
-      <div class="food-details">`;
+    // غذاهای هر تاریخ به ترتیب الفبا
+    const items = byDate[date].sort((a, b) => a.name.localeCompare(b.name, "fa"));
 
-    records.forEach(r => {
-      html += `<div class="food-detail-entry">
-        <div class="detail-row"><span class="detail-label">📅 تاریخ:</span><span class="detail-value">${formatDate(r.date)}</span></div>
-        <div class="detail-row"><span class="detail-label">📂 گروه:</span><span class="detail-value">${escapeHtml(r.group)}</span></div>
-        <div class="detail-row"><span class="detail-label">👨‍🍳 تهیه:</span><span class="detail-value">${escapeHtml(r.maker)}</span></div>
-        <div class="detail-actions">
-          <button class="btn-icon-sm" onclick="openEditFood('${r.id}')">✏️ ویرایش</button>
-          <button class="btn-icon-sm btn-icon-danger" onclick="deleteFoodRecord('${r.id}')">🗑️ حذف</button>
+    items.forEach(({ name, records }) => {
+      const count = records.length;
+      const groupColor = colors[records[0].group] || "#7dccae";
+      const repeatBadge = count > 1 ? `<span class="food-count">${count} بار</span>` : "";
+
+      html += `<div class="food-item">
+        <div class="food-header" onclick="toggleDetails(this)">
+          <div class="food-icon" style="background:${groupColor}20; color:${groupColor};">🍽️</div>
+          <span class="food-name">${escapeHtml(name)}</span>
+          ${repeatBadge}
+          <span class="food-arrow">▼</span>
         </div>
-      </div>`;
+        <div class="food-details">`;
+
+      records.forEach(r => {
+        const servingRow = r.serving
+          ? `<div class="detail-row"><span class="detail-label">🍚 نحوه صرف:</span><span class="detail-value">${escapeHtml(r.serving)}</span></div>`
+          : "";
+        html += `<div class="food-detail-entry">
+          <div class="detail-row"><span class="detail-label">📅 تاریخ:</span><span class="detail-value">${formatDate(r.date)}</span></div>
+          <div class="detail-row"><span class="detail-label">📂 گروه:</span><span class="detail-value">${escapeHtml(r.group)}</span></div>
+          <div class="detail-row"><span class="detail-label">👨‍🍳 تهیه:</span><span class="detail-value">${escapeHtml(r.maker)}</span></div>
+          ${servingRow}
+          <div class="detail-actions">
+            <button class="btn-icon-sm" onclick="openEditFood('${r.id}')">✏️ ویرایش</button>
+            <button class="btn-icon-sm btn-icon-danger" onclick="deleteFoodRecord('${r.id}')">🗑️ حذف</button>
+          </div>
+        </div>`;
+      });
+
+      html += `</div></div>`;
     });
 
-    html += `</div></div>`;
+    html += `</div>`;
   });
 
   container.innerHTML = html;
