@@ -208,6 +208,24 @@ header h1 {
   padding: 12px 16px;
 }
 
+.date-group {
+  margin-bottom: 18px;
+}
+
+.date-header {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #eef6f2;
+  border: 1px solid #d9ece3;
+  border-radius: 10px;
+  padding: 7px 14px;
+  margin-bottom: 10px;
+  position: sticky;
+  top: 76px;
+  z-index: 30;
+}
+
 .food-item {
   background: #fff;
   border-radius: 14px;
