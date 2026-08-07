@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -25,6 +25,8 @@ const DEFAULT_GROUP_COLORS = {
 // وضعیت ویرایش: اگر مقدار داشته باشد یعنی در حال ویرایش یک رکورد موجودیم
 let editingFoodId = null;
 let swRegistration = null;
+let selectedMeal = "";        // وعده انتخاب‌شده در فرم ثبت/ویرایش
+let statsMealFilter = "";     // فیلتر وعده در صفحه آمار ("" یعنی همه)
 
 // ==================== Service Worker (کش آفلاین + بروزرسانی خودکار) ====================
 if ("serviceWorker" in navigator) {
@@ -168,6 +170,27 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { document.getElementById("suggestions").classList.remove("show"); }, 200);
   });
 
+  // انتخاب وعده غذایی در فرم ثبت/ویرایش
+  document.querySelectorAll("#mealPicker .meal-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const meal = btn.dataset.meal;
+      // کلیک دوباره روی وعده انتخاب‌شده، آن را لغو می‌کند
+      selectedMeal = (selectedMeal === meal) ? "" : meal;
+      syncMealPicker();
+    });
+  });
+
+  // فیلتر وعده در صفحه آمار
+  document.querySelectorAll("#statsMealFilter .meal-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      statsMealFilter = btn.dataset.meal;
+      document.querySelectorAll("#statsMealFilter .meal-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.meal === statsMealFilter);
+      });
+      renderStats();
+    });
+  });
+
   document.getElementById("foodServing").addEventListener("input", showServingSuggestions);
   document.getElementById("foodServing").addEventListener("blur", () => {
     setTimeout(() => { document.getElementById("servingSuggestions").classList.remove("show"); }, 200);
@@ -203,6 +226,13 @@ function showToast(msg, type = "") {
 }
 
 // ==================== مودال ثبت/ویرایش ====================
+// همگام‌سازی ظاهر دکمه‌های وعده با مقدار انتخاب‌شده
+function syncMealPicker() {
+  document.querySelectorAll("#mealPicker .meal-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.meal === selectedMeal);
+  });
+}
+
 function openAddModal() {
   editingFoodId = null;
   document.getElementById("addModalTitle").textContent = "➕ ثبت غذای جدید";
@@ -211,6 +241,8 @@ function openAddModal() {
   document.getElementById("foodMaker").value = "";
   document.getElementById("foodServing").value = "";
   document.getElementById("foodGroup").value = "";
+  selectedMeal = "";
+  syncMealPicker();
   const today = new Date().toISOString().split("T")[0];
   document.getElementById("foodDate").value = today;
   document.getElementById("addModal").classList.add("show");
@@ -231,6 +263,8 @@ function openEditFood(id) {
   document.getElementById("foodDate").value = food.date;
   document.getElementById("foodMaker").value = food.maker === "نامشخص" ? "" : food.maker;
   document.getElementById("foodServing").value = food.serving || "";
+  selectedMeal = food.meal || "";
+  syncMealPicker();
   document.getElementById("addModal").classList.add("show");
 }
 
@@ -239,6 +273,8 @@ function closeAddModal() {
   document.getElementById("foodName").value = "";
   document.getElementById("foodMaker").value = "";
   document.getElementById("foodServing").value = "";
+  selectedMeal = "";
+  syncMealPicker();
   document.getElementById("suggestions").classList.remove("show");
   document.getElementById("makerSuggestions").classList.remove("show");
   document.getElementById("servingSuggestions").classList.remove("show");
@@ -287,16 +323,31 @@ function renderBarList(containerId, entries) {
 }
 
 function renderStats() {
-  const foods = loadFoods();
+  const allFoods = loadFoods();
+
+  // اعمال فیلتر وعده (اگر انتخاب شده باشد)
+  const foods = statsMealFilter
+    ? allFoods.filter(f => f.meal === statsMealFilter)
+    : allFoods;
 
   document.getElementById("statTotalRecords").textContent = foods.length;
   document.getElementById("statUniqueFoods").textContent = new Set(foods.map(f => f.name)).size;
   document.getElementById("statUniqueMakers").textContent =
     new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص")).size;
 
+  // توزیع وعده‌ها همیشه بر اساس کل داده‌ها محاسبه می‌شود تا نمای کلی حفظ شود
+  const MEAL_ORDER = ["صبحانه", "ناهار", "شام"];
+  const mealCounts = MEAL_ORDER
+    .map(m => [m, allFoods.filter(f => f.meal === m).length])
+    .filter(([, c]) => c > 0);
+  const noMealCount = allFoods.filter(f => !f.meal).length;
+  if (noMealCount > 0) mealCounts.push(["بدون وعده", noMealCount]);
+  mealCounts.sort((a, b) => b[1] - a[1]);
+
   const foodCounts = countBy(foods, f => f.name);
   const makerCounts = countBy(foods, f => f.maker && f.maker !== "نامشخص" ? f.maker : null);
 
+  renderBarList("statsMealList", mealCounts);
   renderBarList("statsFoodList", foodCounts);
   renderBarList("statsMakerList", makerCounts);
 }
@@ -366,6 +417,7 @@ function saveFoodEntry() {
       name, group, date,
       maker: maker || "نامشخص",
       serving: serving,
+      meal: selectedMeal,
     };
     saveFoods(foods);
     closeAddModal();
@@ -381,6 +433,7 @@ function saveFoodEntry() {
     date: date,
     maker: maker || "نامشخص",
     serving: serving,
+    meal: selectedMeal,
     timestamp: Date.now(),
   });
   saveFoods(foods);
@@ -572,10 +625,14 @@ function renderFoodList() {
         const servingRow = r.serving
           ? `<div class="detail-row"><span class="detail-label">🍚 نحوه صرف:</span><span class="detail-value">${escapeHtml(r.serving)}</span></div>`
           : "";
+        const mealRow = r.meal
+          ? `<div class="detail-row"><span class="detail-label">🕐 وعده:</span><span class="detail-value">${escapeHtml(r.meal)}</span></div>`
+          : "";
         html += `<div class="food-detail-entry">
           <div class="detail-row"><span class="detail-label">📅 تاریخ:</span><span class="detail-value">${formatDate(r.date)}</span></div>
           <div class="detail-row"><span class="detail-label">📂 گروه:</span><span class="detail-value">${escapeHtml(r.group)}</span></div>
           <div class="detail-row"><span class="detail-label">👨‍🍳 تهیه:</span><span class="detail-value">${escapeHtml(r.maker)}</span></div>
+          ${mealRow}
           ${servingRow}
           <div class="detail-actions">
             <button class="btn-icon-sm" onclick="openEditFood('${r.id}')">✏️ ویرایش</button>
