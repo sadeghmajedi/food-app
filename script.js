@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -31,7 +31,7 @@ let statsMealFilter = "";     // فیلتر وعده در صفحه آمار ("" 
 // ==================== Service Worker (کش آفلاین + بروزرسانی خودکار) ====================
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").then((reg) => {
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
       swRegistration = reg;
 
       // اگر همین الان یک نسخهٔ جدید در انتظار فعال‌سازی است
