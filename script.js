@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -27,6 +27,35 @@ let editingFoodId = null;
 let swRegistration = null;
 let selectedMeal = "";        // وعده انتخاب‌شده در فرم ثبت/ویرایش
 let statsMealFilter = "";     // فیلتر وعده در صفحه آمار ("" یعنی همه)
+
+// ==================== یکسان‌سازی متن فارسی/عربی ====================
+// کیبورد عربی و فارسی آیفون «ی»، «ک» و ارقام را با کدهای Unicode متفاوت تولید می‌کنند
+// (ي/ى در برابر ی، ك در برابر ک). این تابع فقط در لحظه‌ی مقایسه، جستجو و گروه‌بندی
+// استفاده می‌شود و هیچ داده‌ی ذخیره‌شده‌ای را تغییر نمی‌دهد.
+function normalizeFa(s) {
+  if (s == null) return "";
+  return String(s)
+    .replace(/[\u064A\u0649]/g, "\u06CC")                              // ي ى → ی
+    .replace(/\u0643/g, "\u06A9")                                      // ك → ک
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)) // ارقام عربی → لاتین
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0)) // ارقام فارسی → لاتین
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")                       // اعراب و کشیده
+    .replace(/[\u200C\u200D\u200E\u200F]/g, "")                        // نیم‌فاصله و نویسه‌های جهت
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+// حذف موارد تکراری بر اساس شکل یکسان‌شده؛ ترتیب اولین مشاهده حفظ می‌شود
+// و برای نمایش، آخرین شکل ثبت‌شده (معمولاً با کیبورد فارسی) نگه داشته می‌شود
+function uniqueByNormalized(arr) {
+  const seen = new Map();
+  arr.forEach(v => {
+    const k = normalizeFa(v);
+    if (k) seen.set(k, v);
+  });
+  return [...seen.values()];
+}
 
 // ==================== Service Worker (کش آفلاین + بروزرسانی خودکار) ====================
 if ("serviceWorker" in navigator) {
@@ -296,13 +325,17 @@ function closeStatsTab() {
 }
 
 function countBy(items, keyFn) {
-  const counts = {};
+  // شمارش بر اساس شکل یکسان‌شده تا «ی/ک» عربی و فارسی یک مورد حساب شوند
+  const counts = new Map();
   items.forEach((item) => {
-    const key = keyFn(item);
-    if (!key) return;
-    counts[key] = (counts[key] || 0) + 1;
+    const label = keyFn(item);
+    if (!label) return;
+    const k = normalizeFa(label);
+    if (!k) return;
+    const prev = counts.get(k);
+    counts.set(k, [label, (prev ? prev[1] : 0) + 1]);
   });
-  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return [...counts.values()].sort((a, b) => b[1] - a[1]);
 }
 
 function renderBarList(containerId, entries) {
@@ -331,9 +364,9 @@ function renderStats() {
     : allFoods;
 
   document.getElementById("statTotalRecords").textContent = foods.length;
-  document.getElementById("statUniqueFoods").textContent = new Set(foods.map(f => f.name)).size;
+  document.getElementById("statUniqueFoods").textContent = uniqueByNormalized(foods.map(f => f.name)).length;
   document.getElementById("statUniqueMakers").textContent =
-    new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص")).size;
+    uniqueByNormalized(foods.map(f => f.maker).filter(m => m && m !== "نامشخص")).length;
 
   // توزیع وعده‌ها همیشه بر اساس کل داده‌ها محاسبه می‌شود تا نمای کلی حفظ شود
   const MEAL_ORDER = ["صبحانه", "ناهار", "شام"];
@@ -384,7 +417,7 @@ function refreshGroupDropdowns() {
   sel2.value = prevVal2;
 
   const foods = loadFoods();
-  const makers = sortAlpha([...new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"))]);
+  const makers = sortAlpha(uniqueByNormalized(foods.map(f => f.maker).filter(m => m && m !== "نامشخص")));
   const sel3 = document.getElementById("filterMaker");
   const prevVal3 = sel3.value;
   sel3.innerHTML = '<option value="">👨‍🍳 همه تهیه‌کننده‌ها</option>' +
@@ -456,7 +489,7 @@ function deleteFoodRecord(id) {
 
 // ==================== پیشنهادات هوشمند (نام غذا) ====================
 function showSuggestions() {
-  const query = document.getElementById("foodName").value.trim().toLowerCase();
+  const query = normalizeFa(document.getElementById("foodName").value);
   const suggDiv = document.getElementById("suggestions");
 
   if (query.length < 2) {
@@ -465,8 +498,8 @@ function showSuggestions() {
   }
 
   const foods = loadFoods();
-  const allNames = [...new Set(foods.map(f => f.name))];
-  const matches = allNames.filter(n => n.toLowerCase().includes(query));
+  const allNames = uniqueByNormalized(foods.map(f => f.name));
+  const matches = allNames.filter(n => normalizeFa(n).includes(query));
 
   if (matches.length === 0) {
     suggDiv.classList.remove("show");
@@ -484,7 +517,7 @@ function selectSuggestion(name) {
   document.getElementById("suggestions").classList.remove("show");
 
   const foods = loadFoods();
-  const existing = foods.find(f => f.name === name);
+  const existing = foods.find(f => normalizeFa(f.name) === normalizeFa(name));
   if (existing) {
     document.getElementById("foodGroup").value = existing.group;
   }
@@ -492,7 +525,7 @@ function selectSuggestion(name) {
 
 // ==================== پیشنهادات هوشمند (تهیه‌کننده / مکان) ====================
 function showMakerSuggestions() {
-  const query = document.getElementById("foodMaker").value.trim().toLowerCase();
+  const query = normalizeFa(document.getElementById("foodMaker").value);
   const suggDiv = document.getElementById("makerSuggestions");
 
   if (query.length < 1) {
@@ -501,8 +534,8 @@ function showMakerSuggestions() {
   }
 
   const foods = loadFoods();
-  const allMakers = [...new Set(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"))];
-  const matches = allMakers.filter(m => m.toLowerCase().includes(query));
+  const allMakers = uniqueByNormalized(foods.map(f => f.maker).filter(m => m && m !== "نامشخص"));
+  const matches = allMakers.filter(m => normalizeFa(m).includes(query));
 
   if (matches.length === 0) {
     suggDiv.classList.remove("show");
@@ -522,7 +555,7 @@ function selectMakerSuggestion(name) {
 
 // ==================== پیشنهادات هوشمند (نحوه صرف غذا) ====================
 function showServingSuggestions() {
-  const query = document.getElementById("foodServing").value.trim().toLowerCase();
+  const query = normalizeFa(document.getElementById("foodServing").value);
   const suggDiv = document.getElementById("servingSuggestions");
 
   if (query.length < 1) {
@@ -531,8 +564,8 @@ function showServingSuggestions() {
   }
 
   const foods = loadFoods();
-  const allServings = [...new Set(foods.map(f => f.serving).filter(v => v))];
-  const matches = allServings.filter(v => v.toLowerCase().includes(query));
+  const allServings = uniqueByNormalized(foods.map(f => f.serving).filter(v => v));
+  const matches = allServings.filter(v => normalizeFa(v).includes(query));
 
   if (matches.length === 0) {
     suggDiv.classList.remove("show");
@@ -552,7 +585,7 @@ function selectServingSuggestion(value) {
 
 // ==================== نمایش لیست غذاها ====================
 function renderFoodList() {
-  const searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
+  const searchQuery = normalizeFa(document.getElementById("searchInput").value);
   const filterGroup = document.getElementById("filterGroup").value;
   const filterMaker = document.getElementById("filterMaker").value;
   const foods = loadFoods();
@@ -566,13 +599,13 @@ function renderFoodList() {
 
   let filtered = foods;
   if (searchQuery) {
-    filtered = filtered.filter(f => f.name.toLowerCase().includes(searchQuery));
+    filtered = filtered.filter(f => normalizeFa(f.name).includes(searchQuery));
   }
   if (filterGroup) {
     filtered = filtered.filter(f => f.group === filterGroup);
   }
   if (filterMaker) {
-    filtered = filtered.filter(f => f.maker === filterMaker);
+    filtered = filtered.filter(f => normalizeFa(f.maker) === normalizeFa(filterMaker));
   }
 
   if (filtered.length === 0) {
@@ -580,17 +613,19 @@ function renderFoodList() {
     return;
   }
 
-  // گروه‌بندی رکوردها بر اساس نام غذا
+  // گروه‌بندی رکوردها بر اساس نام غذا (یکسان‌شده، تا «ی/ک» عربی و فارسی یکی شوند)
   const grouped = {};
   filtered.forEach(f => {
-    if (!grouped[f.name]) grouped[f.name] = [];
-    grouped[f.name].push(f);
+    const key = normalizeFa(f.name);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(f);
   });
 
   // هر غذا زیر «آخرین تاریخ تهیه»‌اش قرار می‌گیرد
   const byDate = {};
-  Object.keys(grouped).forEach(name => {
-    const records = grouped[name].sort((a, b) => b.date.localeCompare(a.date));
+  Object.keys(grouped).forEach(key => {
+    const records = grouped[key].sort((a, b) => b.date.localeCompare(a.date));
+    const name = records[0].name;
     const latestDate = records[0].date;
     if (!byDate[latestDate]) byDate[latestDate] = [];
     byDate[latestDate].push({ name, records });
