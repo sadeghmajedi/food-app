@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.8.1";
+const APP_VERSION = "1.9";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -324,7 +324,31 @@ function closeStatsTab() {
   document.getElementById("main").classList.add("active");
 }
 
-function countBy(items, keyFn) {
+// v1.9: سهم هر رکورد در «تعداد دفعات صرف» = ۱ ÷ تعداد غذاهای ثبت‌شده در همان تاریخ و همان وعده
+// (۲ غذا در یک وعده → هرکدام ۰.۵؛ ۳ غذا → هرکدام ⅓). رکورد بدون وعده سهم کامل ۱ دارد،
+// چون معلوم نیست با کدام غذاها در یک وعده بوده. فقط هنگام نمایش محاسبه می‌شود و داده‌ی ذخیره‌شده دست نمی‌خورد.
+// همیشه روی کل رکوردها (بدون فیلتر) حساب شود؛ کلید Map خود شیء رکورد است.
+function computeMealShares(allFoods) {
+  const slotKey = (f) => (f.meal && f.date ? f.date + "|" + f.meal : null);
+  const slotSize = new Map();
+  allFoods.forEach((f) => {
+    const k = slotKey(f);
+    if (k) slotSize.set(k, (slotSize.get(k) || 0) + 1);
+  });
+  const shares = new Map();
+  allFoods.forEach((f) => {
+    const k = slotKey(f);
+    shares.set(f, k ? 1 / slotSize.get(k) : 1);
+  });
+  return shares;
+}
+
+// نمایش شمارش کسری با حداکثر یک رقم اعشار (⅓ → 0.3)؛ جمع‌ها با مقدار دقیق محاسبه می‌شوند
+function formatCount(n) {
+  return String(Math.round(n * 10) / 10);
+}
+
+function countBy(items, keyFn, weightFn) {
   // شمارش بر اساس شکل یکسان‌شده تا «ی/ک» عربی و فارسی یک مورد حساب شوند
   const counts = new Map();
   items.forEach((item) => {
@@ -333,7 +357,8 @@ function countBy(items, keyFn) {
     const k = normalizeFa(label);
     if (!k) return;
     const prev = counts.get(k);
-    counts.set(k, [label, (prev ? prev[1] : 0) + 1]);
+    const w = weightFn ? weightFn(item) : 1;
+    counts.set(k, [label, (prev ? prev[1] : 0) + w]);
   });
   return [...counts.values()].sort((a, b) => b[1] - a[1]);
 }
@@ -350,7 +375,7 @@ function renderBarList(containerId, entries) {
     return `<div class="stat-bar-row">
       <span class="stat-bar-name" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
       <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
-      <span class="stat-bar-count">${count}</span>
+      <span class="stat-bar-count">${formatCount(count)}</span>
     </div>`;
   }).join("");
 }
@@ -377,7 +402,8 @@ function renderStats() {
   if (noMealCount > 0) mealCounts.push(["بدون وعده", noMealCount]);
   mealCounts.sort((a, b) => b[1] - a[1]);
 
-  const foodCounts = countBy(foods, f => f.name);
+  const shares = computeMealShares(allFoods);
+  const foodCounts = countBy(foods, f => f.name, f => shares.get(f));
   const makerCounts = countBy(foods, f => f.maker && f.maker !== "نامشخص" ? f.maker : null);
 
   renderBarList("statsMealList", mealCounts);
@@ -613,6 +639,9 @@ function renderFoodList() {
     return;
   }
 
+  // سهم هر رکورد روی کل داده‌ها (نه فقط نتیجه‌ی فیلتر) حساب می‌شود
+  const shares = computeMealShares(foods);
+
   // گروه‌بندی رکوردها بر اساس نام غذا (یکسان‌شده، تا «ی/ک» عربی و فارسی یکی شوند)
   const grouped = {};
   filtered.forEach(f => {
@@ -643,9 +672,10 @@ function renderFoodList() {
     const items = byDate[date].sort((a, b) => a.name.localeCompare(b.name, "fa"));
 
     items.forEach(({ name, records }) => {
-      const count = records.length;
+      const count = records.reduce((sum, r) => sum + shares.get(r), 0);
       const groupColor = colors[records[0].group] || "#7dccae";
-      const repeatBadge = count > 1 ? `<span class="food-count">${count} بار</span>` : "";
+      // نشان فقط وقتی شمارش دقیقاً ۱ نیست (چند بار صرف، یا سهم کسری از یک وعده‌ی مشترک)
+      const repeatBadge = Math.abs(count - 1) > 1e-9 ? `<span class="food-count">${formatCount(count)} بار</span>` : "";
 
       html += `<div class="food-item">
         <div class="food-header" onclick="toggleDetails(this)">
