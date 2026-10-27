@@ -1,14 +1,23 @@
 :root {
-  --bg: #f0f5f9;
+  /* v1.8: پالت food_app (coolors) — D3F8E2 / E4C1F9 / F694C1 / EDE7B1 / A9DEF9
+     هر پنج رنگ روشن‌اند و متن سفید روی هیچ‌کدام خوانا نیست (کمتر از ۲.۲:۱)،
+     پس متن روی رنگ‌های پالت همیشه --text است. */
+  --mint: #D3F8E2;
+  --lavender: #E4C1F9;
+  --pink: #F694C1;
+  --cream: #EDE7B1;
+  --sky: #A9DEF9;
+  --plum: #5B2A4E;          /* رنگ «سین» و نشانه‌ها — روی لاوندر ۷:۱ */
+  --bg: #F3EEF7;
   --card-bg: #ffffff;
-  --primary: #7dccae;
-  --primary-dark: #5dbb9a;
-  --primary-light: #a8e6cf;
-  --accent: #ffb5a7;
-  --accent2: #b5c7e8;
-  --accent3: #fcd5ce;
-  --text: #3a4a5a;
-  --text-light: #8a9baa;
+  --primary: var(--pink);   /* دکمه‌ها با متن --text (۵.۹:۱) */
+  --primary-dark: #A3366F;  /* متن تأکیدی روی سفید (۶.۳:۱) و زمینه‌ی پیام‌ها با متن سفید */
+  --primary-light: #FBD3E6;
+  --accent: var(--lavender);
+  --accent2: var(--sky);
+  --accent3: var(--mint);
+  --text: #3B2F4A;          /* روی سفید ۱۲.۴:۱ */
+  --text-light: #6A6178;    /* روی سفید ۵.۸:۱ */
   --danger: #ff8b94;
   --danger-dark: #e07080;
   --radius: 16px;
@@ -31,58 +40,81 @@ body {
 #splash {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #a8e6cf, #b5c7e8);
+  background: var(--lavender);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  animation: splashFade 3s ease forwards;
+  animation: splashFade 2.8s ease forwards;
 }
 
+/* v1.8: splash «سین» با افکت «بخار» — «سین» بالا می‌آید، از سه دندانه‌ی «س» بخار بلند می‌شود و محو می‌شود،
+   و «سین» تا پایان آرام بزرگ‌تر می‌شود تا حس مکث نماند. همه داخل ۲.۸ ثانیه‌ی setTimeout در script.js. */
 .splash-content {
-  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.splash-logo {
-  animation: slideInGlow 2.5s ease forwards;
-  filter: drop-shadow(0 0 20px rgba(255,255,255,0.6));
-}
-
-.splash-logo-img {
-  width: min(78vw, 340px);
+.sp-word {
+  width: min(64vw, 250px);
   height: auto;
   display: block;
+  overflow: visible;
+  opacity: 0;
+  animation: spRise 0.6s ease-out 0.1s forwards, spDrift 2s linear 0.7s forwards;
 }
 
-.splash-glow {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.4), transparent 70%);
-  animation: glowPulse 2.5s ease forwards;
+.sp-fill { fill: var(--plum); }
+
+.sp-steam path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 34;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: spDraw 0.8s ease-out forwards;
+}
+.sp-steam path:nth-child(1) { animation-delay: 0.55s; }
+.sp-steam path:nth-child(2) { animation-delay: 0.75s; }
+.sp-steam path:nth-child(3) { animation-delay: 0.95s; }
+.sp-steam { animation: spSteamOut 0.7s ease-in 1.75s forwards; }
+
+.sp-title {
+  margin-top: 26px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0;
+  animation: spTitle 0.6s ease 0.9s forwards;
 }
 
 @keyframes splashFade {
-  0%, 70% { opacity: 1; }
+  0%, 78% { opacity: 1; }
   100% { opacity: 0; visibility: hidden; }
 }
 
-@keyframes slideInGlow {
-  0% { transform: translateX(150px) scale(0.8); opacity: 0; }
-  30% { transform: translateX(0) scale(1); opacity: 1; }
-  70% { transform: translateX(0) scale(1); opacity: 1; filter: drop-shadow(0 0 30px rgba(255,255,255,0.8)); }
-  100% { transform: translateX(0) scale(1.05); opacity: 0; }
+@keyframes spRise {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes spDrift {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.06); }
+}
+@keyframes spDraw { to { stroke-dashoffset: 0; } }
+@keyframes spSteamOut { to { opacity: 0; transform: translateY(-140px); } }  /* واحد: مختصات viewBox */
+@keyframes spTitle {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes glowPulse {
-  0% { transform: scale(0.5); opacity: 0; }
-  40% { transform: scale(1.2); opacity: 0.8; }
-  70% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(1.5); opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .sp-word, .sp-steam, .sp-steam path, .sp-title { animation: none; }
+  .sp-word, .sp-title { opacity: 1; }
+  .sp-steam { opacity: 0; }
 }
 
 .app-container {
@@ -96,7 +128,7 @@ body {
 }
 
 header {
-  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  background: linear-gradient(135deg, var(--lavender), var(--sky));
   padding: 18px 20px;
   display: flex;
   justify-content: space-between;
@@ -104,7 +136,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 15px rgba(125,204,174,0.3);
+  box-shadow: 0 4px 15px rgba(164,120,196,0.25);
 }
 
 .header-left {
@@ -113,15 +145,23 @@ header {
   gap: 10px;
 }
 
+/* v1.8: نشانه‌ی برند داخل اپ فقط حرف «س» است، بدون کادر */
+.top-logo {
+  width: 40px;
+  height: auto;
+  flex-shrink: 0;
+  display: block;
+  fill: var(--plum);
+}
+
 header h1 {
   font-size: 1.3rem;
-  color: #fff;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: var(--text);
 }
 
 .version-badge {
-  background: rgba(255,255,255,0.3);
-  color: #fff;
+  background: rgba(255,255,255,0.55);
+  color: var(--text);
   font-size: 0.7rem;
   padding: 3px 10px;
   border-radius: 20px;
@@ -143,7 +183,7 @@ header h1 {
 }
 
 .header-settings {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.45);
   border: none;
   width: 40px;
   height: 40px;
@@ -155,7 +195,7 @@ header h1 {
 }
 
 .header-settings:hover {
-  background: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.7);
   transform: rotate(90deg);
 }
 
@@ -164,14 +204,14 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #f7fafc;
-  border-bottom: 1px solid #e8eef2;
+  background: #FAF7FC;
+  border-bottom: 1px solid #EEE6F3;
 }
 
 .search-input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #dde5ec;
+  border: 2px solid #E7DCEE;
   border-radius: 12px;
   font-size: 0.95rem;
   background: #fff;
@@ -183,13 +223,13 @@ header h1 {
 .search-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(125,204,174,0.2);
+  box-shadow: 0 0 0 3px rgba(246,148,193,0.2);
 }
 
 .filter-select {
   width: 100%;
   padding: 10px 14px;
-  border: 2px solid #dde5ec;
+  border: 2px solid #E7DCEE;
   border-radius: 10px;
   font-size: 0.85rem;
   background: #fff;
@@ -215,9 +255,9 @@ header h1 {
 .date-header {
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--primary-dark);
-  background: #eef6f2;
-  border: 1px solid #d9ece3;
+  color: var(--text);
+  background: var(--mint);
+  border: 1px solid #BDEBD0;
   border-radius: 10px;
   padding: 7px 14px;
   margin-bottom: 10px;
@@ -233,7 +273,7 @@ header h1 {
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   transition: var(--transition);
-  border: 1px solid #eef2f5;
+  border: 1px solid #F1EAF5;
 }
 
 .food-item:hover {
@@ -269,7 +309,7 @@ header h1 {
 .food-count {
   font-size: 0.75rem;
   color: var(--text-light);
-  background: #f0f5f9;
+  background: #F3EEF7;
   padding: 2px 10px;
   border-radius: 20px;
 }
@@ -296,7 +336,7 @@ header h1 {
 
 .food-detail-entry {
   padding: 10px 16px 10px 50px;
-  border-top: 1px solid #f0f5f9;
+  border-top: 1px solid #F3EEF7;
   font-size: 0.82rem;
   color: var(--text-light);
   display: flex;
@@ -328,7 +368,7 @@ header h1 {
   flex: 1;
   padding: 7px 10px;
   font-size: 0.75rem;
-  border: 1.5px solid #dde5ec;
+  border: 1.5px solid #E7DCEE;
   background: #fff;
   border-radius: 8px;
   cursor: pointer;
@@ -339,7 +379,7 @@ header h1 {
 
 .btn-icon-sm:hover {
   border-color: var(--primary);
-  background: #f9fbfc;
+  background: #FAF7FC;
 }
 
 .btn-icon-danger {
@@ -361,11 +401,11 @@ header h1 {
   height: 60px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff;
+  background: var(--primary);
+  color: var(--plum);
   font-size: 2rem;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(125,204,174,0.5);
+  box-shadow: 0 6px 20px rgba(246,148,193,0.5);
   z-index: 50;
   transition: var(--transition);
   display: flex;
@@ -376,7 +416,7 @@ header h1 {
 
 .fab:hover {
   transform: translateX(-50%) scale(1.1);
-  box-shadow: 0 8px 25px rgba(125,204,174,0.6);
+  box-shadow: 0 8px 25px rgba(246,148,193,0.6);
 }
 
 .fab:active {
@@ -426,7 +466,7 @@ header h1 {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #f0f5f9;
+  border-bottom: 2px solid #F3EEF7;
 }
 
 .modal-header h2 {
@@ -435,7 +475,7 @@ header h1 {
 }
 
 .modal-close {
-  background: #f0f5f9;
+  background: #F3EEF7;
   border: none;
   width: 32px;
   height: 32px;
@@ -467,10 +507,10 @@ header h1 {
 .form-group select {
   width: 100%;
   padding: 12px 14px;
-  border: 2px solid #dde5ec;
+  border: 2px solid #E7DCEE;
   border-radius: 12px;
   font-size: 0.92rem;
-  background: #f9fbfc;
+  background: #FAF7FC;
   font-family: inherit;
   color: var(--text);
   transition: var(--transition);
@@ -481,7 +521,7 @@ header h1 {
   outline: none;
   border-color: var(--primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(125,204,174,0.15);
+  box-shadow: 0 0 0 3px rgba(246,148,193,0.15);
 }
 
 .suggestions {
@@ -509,12 +549,12 @@ header h1 {
   font-size: 0.88rem;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 1px solid #f0f5f9;
+  border-bottom: 1px solid #F3EEF7;
 }
 
 .suggestion-item:hover {
   background: var(--primary-light);
-  color: #fff;
+  color: var(--text);
 }
 
 .suggestion-item:last-child {
@@ -525,20 +565,20 @@ header h1 {
   width: 100%;
   padding: 14px;
   border: none;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff;
+  background: var(--primary);
+  color: var(--text);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 14px;
   cursor: pointer;
   transition: var(--transition);
   font-family: inherit;
-  box-shadow: 0 4px 15px rgba(125,204,174,0.4);
+  box-shadow: 0 4px 15px rgba(246,148,193,0.4);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(125,204,174,0.5);
+  box-shadow: 0 6px 20px rgba(246,148,193,0.5);
 }
 
 .btn-primary:active {
@@ -552,7 +592,7 @@ header h1 {
 
 .btn-secondary {
   padding: 11px 16px;
-  border: 2px solid #dde5ec;
+  border: 2px solid #E7DCEE;
   background: #fff;
   color: var(--text);
   font-size: 0.85rem;
@@ -566,7 +606,7 @@ header h1 {
 
 .btn-secondary:hover {
   border-color: var(--primary);
-  background: #f9fbfc;
+  background: #FAF7FC;
 }
 
 .btn-danger {
@@ -589,7 +629,7 @@ header h1 {
 .settings-section {
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f0f5f9;
+  border-bottom: 1px solid #F3EEF7;
 }
 
 .settings-section:last-child {
@@ -606,7 +646,7 @@ header h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f9fbfc;
+  background: #FAF7FC;
   padding: 12px 14px;
   border-radius: 12px;
   font-size: 0.88rem;
@@ -622,7 +662,7 @@ header h1 {
 .inline-form input {
   flex: 1;
   padding: 10px 14px;
-  border: 2px solid #dde5ec;
+  border: 2px solid #E7DCEE;
   border-radius: 12px;
   font-size: 0.88rem;
   font-family: inherit;
@@ -638,7 +678,7 @@ header h1 {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: #f9fbfc;
+  background: #FAF7FC;
   border-radius: 10px;
   margin-bottom: 6px;
 }
@@ -662,7 +702,7 @@ header h1 {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: #f9fbfc;
+  background: #FAF7FC;
   border-radius: 10px;
   margin-bottom: 6px;
 }
@@ -753,8 +793,8 @@ footer {
   padding: 16px;
   font-size: 0.78rem;
   color: var(--text-light);
-  background: #f7fafc;
-  border-top: 1px solid #e8eef2;
+  background: #FAF7FC;
+  border-top: 1px solid #EEE6F3;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -773,8 +813,8 @@ footer {
 .meal-btn {
   flex: 1;
   padding: 11px 6px;
-  border: 2px solid #dde5ec;
-  background: #f9fbfc;
+  border: 2px solid #E7DCEE;
+  background: #FAF7FC;
   color: var(--text-light);
   border-radius: 12px;
   font-size: 0.84rem;
@@ -790,10 +830,10 @@ footer {
 }
 
 .meal-btn.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-color: var(--primary-dark);
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(125,204,174,0.4);
+  background: var(--primary);
+  border-color: #E57AAE;
+  color: var(--text);
+  box-shadow: 0 3px 10px rgba(246,148,193,0.4);
 }
 
 .stats-filter-wrap {
@@ -825,17 +865,19 @@ footer {
 
 .stat-card {
   flex: 1;
-  background: #f7fafc;
-  border: 1px solid #e8eef2;
+  background: var(--mint);
   border-radius: 14px;
   padding: 14px 8px;
   text-align: center;
 }
 
+.stat-card:nth-child(2) { background: var(--lavender); }
+.stat-card:nth-child(3) { background: var(--sky); }
+
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary-dark);
+  color: var(--text);
 }
 
 .stat-label {
@@ -877,7 +919,7 @@ footer {
 
 .stat-bar-track {
   flex: 1;
-  background: #f0f5f9;
+  background: #F3EEF7;
   border-radius: 10px;
   height: 20px;
   overflow: hidden;
@@ -886,7 +928,7 @@ footer {
 .stat-bar-fill {
   height: 100%;
   border-radius: 10px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  background: linear-gradient(90deg, var(--sky), var(--lavender), var(--pink));
   transition: width 0.5s ease;
 }
 
@@ -904,6 +946,28 @@ footer {
   font-size: 0.88rem;
   padding: 40px 20px;
 }
+
+/* ==================== برند «سین» (v1.8) ==================== */
+footer span { font-weight: 700; color: var(--text); }
+
+.about-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.about-hdr h3 { margin-bottom: 0; }
+.about-mark { font-size: 1.4rem; line-height: 1; }
+.about-text {
+  font-size: 0.85rem;
+  line-height: 1.9;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+
+/* «سین» با Reem Kufi — فقط حروف س/ی/ن (زیرمجموعه‌ی ۱.۵ کیلوبایتی، SIL OFL 1.1) جاسازی شده تا آفلاین هم درست نمایش داده شود؛ برای کلمه‌ی دیگری کار نمی‌کند */
+@font-face { font-family:'SinKufi'; font-weight:700; font-display:block; src:url(data:font/woff2;base64,d09GMgABAAAAAAW4AA4AAAAADJQAAAVhAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGkgbgh4chAoGYD9TVEFUKgBECohwhn4BNgIkA0gLKAAEIAWDZgcgG4MKAI7Ctr0xkCThaZLJyX/COd+/S0JIxTDJFDEv3jEzs8LD9/ft3NeygSSQBfqxCXDX6FPAjW8E2U6BhCsmUu9sTO1fyxJQErrGN3U1ukYC48aKSUjy00QK2CFKVNOLn51GNaGnWhtFZXoa+PGrQRg9AADKYziiQ/QMOCMzQkSAT2N3o6sJ0Y9g2AtwY6RgygpESbkmgvHCWlQNwdMujZsgeNG4WwcEEwDEC7UqgEn1YxvxSEUteGysy/qhMsc7EqgXe7wGJqnWAVj32kSAQkfkKFOmZMky5cljY6OTzqpIkSpqqaWBBppppo02SCKATAaQ4bkNUpWiPLSfpXyyX6NVjafw3jEcpKRhJxuryI7azMbxgiZRVLasIaCI5FMmWBvWdjkbR6msbGpoYIgWOuhFmjdt3wl9/lTxYdBL4MeInzaugXFl03bdMKts17olppgHYAAyjMZ3w8/BL+KuQGSujcRYvQOhCaq9lETG7TLJOQAEAIgAIAxAOIAQgBE5IFvQfrhVyB7MJtswj8AIeK1hpbfAcAIROQfBPIsssgs5QDDDHHNsQjYRTDLNLLNwZANSDUAACccscwAZhSxDABlHFiHBexyQ5DAI3PAj6okW7dc1IxJGoUcYIxPiiIiIbAkOx9MgOozIgCEGhHVtBRKFlrmzy2HorQxhGUNwMkmco7ZSSP3YPloVbMVqASicmkaIDAk3LdU/ljHIt2JRPUo6Vy2ydwJxSZMAEAC0Z48AKgEhMgI4IYBXCD1btupGIgCGAKAO2wcAYAAOcMIRwIkgHCCTMZD6klU6l/Ox1O/7v8/+tiKgWOBzrAjQAxUArQH4A8oDAIAGZwbIh1Aiw43mwDAPV61CGqoJDVoTw6MZG7RMcao+5gbOQ4NvXg2aPc9t+uzZTjNWOE1bhUHX85qxB28S92BGTUyMdtC1a15Z1KQf9fEZ5MMr6dDDDMIVnBNFGbMOnV7t7FEavGCDS8391xH/wK2bR0x31kC599a5fLyas3drNHVu3LyZtPYgNZ/putKzulJn2nz35tqABvM+K485QIMPasbux6CD07iS1WN9TvUaBw59xOrVthktDLb3mqJNUCbh5smUwiC/DF2ma3D5SguemjtfWfauYZD9063bXh5+aTvK+71zqhKn8/UnryaMmAet4qPqNIsOAaUl/yTfbWv+9jSuuRqTbFAjnTM4eb1HuAEenK1gdRuiFkbH9Bc17eCy9w0DZsYpLn98gz3q+qgLikJczvgtyBpZP6lPreyU+o1C3Va55xfbZFwh0h8fXM/gdmu7dWpXc6cZkp+VtU0o6f/C4oeD5dCEqboVPz9WtY40WXvTsMyO7MYZlWZ3TW6PhwX86K0HVoceIJEAFSkAB3rrYhIkWgB9AKUnqAwSued4XkzV6Kpo2kpnZC/M9rFKIACDt5O1QkND8neZ81cAXGn7cDwAvPhzK99e/O9U8xfuIBIGAAi+IpahBen3SO/Z49bWFN9ERnDpuwU3iYTHErwF3CubJdK+0nesswSd4x5vyOk6WuWEPP9yH95FAItxtGqRERxPQADFABxVHQFsA15IzLYJGdkJIRfuglDgxS4UeYQHSLhoJRKgD5tQhDbq2TXhXi5LR5301kVrLbXSjSpSuAgxQvZmkSKpqtFD88tW0Vxz7akKdddCa6oSXXTURnNNw7Bm7JXdtNJxlOxK5a/V3rrppKtEYcK01JrVat01EaqpjtqD0lg7a4uuY2+dNBemS4yMEG3HCxCaDmvm3radZiKFCr9vlyRDkXxWST6m0RWCPnNk1qMa+jxM1lpHHajhDyTMaEvdwW2si5qmkvVzN132a4gE) format('woff2'); }
+.kufi { font-family: 'SinKufi', -apple-system, 'Segoe UI', Tahoma, sans-serif; font-weight: 700; color: var(--plum); font-size: 1.12em; }
 
 @media (max-width: 400px) {
   header h1 { font-size: 1.1rem; }

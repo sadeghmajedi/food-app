@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Food Recorder">
-  <meta name="theme-color" content="#7dccae">
+  <meta name="theme-color" content="#E4C1F9">
   <title>🍲 Food Recorder</title>
   <link rel="stylesheet" href="style.css">
   <link rel="apple-touch-icon" href="icon-180.png">
@@ -15,19 +15,19 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- v1.8: splash «سین» (مسیرهای SVG از Reem Kufi 700، SIL OFL 1.1) با افکت «بخار» -->
   <div id="splash">
     <div class="splash-content">
-      <div class="splash-logo" id="splashLogo">
-        <img src="logo.png" alt="Seyed Sadegh Majedi" class="splash-logo-img">
-      </div>
-      <div class="splash-glow"></div>
+      <svg class="sp-word" viewBox="0 -620 1415 848" role="img" aria-label="سین"><g class="sp-steam"><path pathLength="1" d="M920 -390q-46 -52 0 -104t0 -104"/><path pathLength="1" d="M1120 -390q-46 -52 0 -104t0 -104"/><path pathLength="1" d="M1320 -390q-46 -52 0 -104t0 -104"/></g><g transform="scale(1,-1)"><g class="sp-fill"><path d="M230 342Q206 342 189.0 359.0Q172 376 172 400Q172 424 189.0 441.0Q206 458 230 458Q254 458 271.0 441.0Q288 424 288 400Q288 376 271.0 359.0Q254 342 230 342Z"/><path d="M223 -204Q186 -204 150.5 -191.5Q115 -179 86.5 -153.5Q58 -128 41.5 -90.0Q25 -52 25 0Q25 44 43.5 84.0Q62 124 91.0 155.5Q120 187 151 207Q153 188 148.0 169.5Q143 151 131 135Q142 130 149.5 115.0Q157 100 160.0 84.0Q163 68 160 58Q150 66 140.0 70.0Q130 74 120 74Q98 74 82.0 52.5Q66 31 66 0Q66 -44 83.0 -73.5Q100 -103 127.0 -117.0Q154 -131 184 -131Q216 -131 245.0 -115.5Q274 -100 292.5 -69.5Q311 -39 311 6Q311 28 304.5 49.5Q298 71 288.5 91.0Q279 111 269 126L337 262Q375 216 405 155Q408 147 412 140H510V0H435Q434 -65 404 -110Q373 -157 324.5 -180.5Q276 -204 223 -204Z"/><path d="M659 -208Q635 -208 618.0 -191.0Q601 -174 601 -150Q601 -126 618.0 -109.0Q635 -92 659 -92Q683 -92 700.0 -109.0Q717 -126 717 -150Q717 -174 700.0 -191.0Q683 -208 659 -208ZM486 -208Q462 -208 445.0 -191.0Q428 -174 428 -150Q428 -126 445.0 -109.0Q462 -92 486 -92Q510 -92 527.0 -109.0Q544 -126 544 -150Q544 -174 527.0 -191.0Q510 -208 486 -208Z"/><path d="M470 0V140H550V379L690 410V140H810V0Z"/><path d="M770 0V140H850V309L990 340V140H1050V309L1190 340V140H1250V309L1390 340V23Q1390 11 1380.0 6.0Q1370 1 1360 1L1350 0Z"/></g></g></svg>
+      <div class="sp-title">ثبت غذا</div>
     </div>
   </div>
 
   <div class="app-container" id="appContainer" style="display:none;">
     <header>
       <div class="header-left">
-        <h1>🍲 Food Recorder</h1>
+        <svg class="top-logo" viewBox="25 -340 820 540" aria-hidden="true"><path transform="scale(1,-1)" d="M216 -200Q155 -200 117.0 -178.0Q79 -156 59.0 -123.0Q39 -90 32.0 -56.5Q25 -23 25 0Q25 44 43.5 84.0Q62 124 91.0 155.5Q120 187 151 207Q153 188 149.0 171.0Q145 154 131 135Q142 130 149.5 115.5Q157 101 160.0 85.0Q163 69 160 57Q144 72 128.0 72.5Q112 73 98 64Q84 54 75.0 39.5Q66 25 66 -1Q66 -40 84.0 -72.0Q102 -104 132.0 -123.5Q162 -143 198 -143Q237 -143 260.5 -120.5Q284 -98 294.5 -56.5Q305 -15 305 40V309L445 340V140H505V309L645 340V140H705V309L845 340V23Q845 11 835.0 6.0Q825 1 815 1L805 0H445Q445 -56 419.0 -101.5Q393 -147 342.5 -173.5Q292 -200 216 -200Z"/></svg>
+        <h1>Food Recorder</h1>
         <span class="version-badge" id="versionBadge">v1.1</span>
       </div>
       <div class="header-actions">
@@ -169,6 +169,14 @@
           <input type="file" id="importFile" accept=".json" style="display:none">
           <button class="btn-secondary" id="btnImport">📤 بازیابی از فایل</button>
         </div>
+        <div class="settings-section">
+          <div class="about-hdr">
+            <h3>ℹ️ درباره اپلیکیشن</h3>
+            <span class="kufi about-mark" aria-hidden="true">سین</span>
+          </div>
+          <p class="about-text">اپلیکیشن ثبت غذای «<span class="kufi">سین</span>» برای ثبت و مرور غذاهای صرف‌شده، تهیه‌کننده‌ها و وعده‌ها طراحی شده است.</p>
+          <p class="about-text">«<span class="kufi">سین</span>» در زبان پهلوی به معنای پرندهٔ شکاری بزرگ است.</p>
+        </div>
         <div class="settings-section danger-section">
           <h3>⚠️ پاک کردن همه داده‌ها</h3>
           <button class="btn-danger" id="btnClearAll">🗑️ پاک کردن همه</button>
@@ -179,7 +187,7 @@
     <div id="toast" class="toast"></div>
 
     <footer>
-      <p>ساخته‌شده با ❤️ — سید صادق مجدی</p>
+      <p>طراحی و توسعه توسط <span>سید صادق ماجدی</span></p>
     </footer>
   </div>
 

@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -785,8 +785,8 @@ function updateGroupColor(groupName, color) {
 async function checkUpdate() {
   const status = document.getElementById("updateStatus");
   status.style.display = "block";
-  status.style.background = "#eef6f2";
-  status.style.color = "#3a4a5a";
+  status.style.background = "#D3F8E2";
+  status.style.color = "#3B2F4A";
   status.innerHTML = "🔄 در حال بررسی آپدیت...";
 
   try {
