@@ -40,12 +40,17 @@
     <section id="main" class="tab-content active">
       <div class="filter-bar">
         <input type="text" id="searchInput" placeholder="🔍 جستجوی غذا..." class="search-input">
-        <select id="filterGroup" class="filter-select">
-          <option value="">📂 همه گروه‌ها</option>
-        </select>
-        <select id="filterMaker" class="filter-select">
-          <option value="">👨‍🍳 همه تهیه‌کننده‌ها</option>
-        </select>
+        <!-- v1.10: گروه، تهیه‌کننده و مواد در یک ردیف -->
+        <div class="filter-row">
+          <select id="filterGroup" class="filter-select">
+            <option value="">📂 همه گروه‌ها</option>
+          </select>
+          <select id="filterMaker" class="filter-select">
+            <option value="">👨‍🍳 تهیه‌کننده‌ها</option>
+          </select>
+          <button type="button" class="filter-ing-btn" id="btnOpenIngFilter">🥕 مواد</button>
+        </div>
+        <div class="ing-active" id="ingActive"></div>
       </div>
       <div id="foodList"></div>
       <button class="fab" id="btnOpenAdd">+</button>
@@ -111,6 +116,17 @@
           <select id="foodGroup"></select>
         </div>
         <div class="form-group">
+          <label>🥕 مواد اصلی <span class="label-hint">— برای هر غذا یک‌بار ثبت می‌شود</span></label>
+          <div class="ing-editor" id="formIngEditor">
+            <div class="ing-chips"></div>
+            <div class="ing-input-row">
+              <input type="text" class="ing-input" placeholder="مثلاً گوشت" enterkeyhint="done" autocomplete="off">
+              <button type="button" class="ing-add-btn" aria-label="افزودن ماده">➕</button>
+            </div>
+            <div class="suggestions ing-sugg"></div>
+          </div>
+        </div>
+        <div class="form-group">
           <label>🕐 وعده غذایی</label>
           <div class="meal-picker" id="mealPicker">
             <button type="button" class="meal-btn" data-meal="صبحانه">🌅 صبحانه</button>
@@ -164,6 +180,10 @@
           <div id="groupColorsList"></div>
         </div>
         <div class="settings-section">
+          <h3>📋 غذاهای بدون مواد <span class="h3-count" id="noIngCount"></span></h3>
+          <div id="noIngList"></div>
+        </div>
+        <div class="settings-section">
           <h3>💾 پشتیبان‌گیری</h3>
           <button class="btn-secondary" id="btnExport">📥 دانلود فایل پشتیبان</button>
           <hr>
@@ -182,6 +202,59 @@
           <h3>⚠️ پاک کردن همه داده‌ها</h3>
           <button class="btn-danger" id="btnClearAll">🗑️ پاک کردن همه</button>
         </div>
+      </div>
+    </div>
+
+    <!-- v1.10: فیلتر مواد -->
+    <div class="modal-overlay" id="ingFilterModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>🥕 فیلتر مواد</h2>
+          <button class="modal-close" id="btnCloseIngFilter">✕</button>
+        </div>
+        <div class="meal-picker ing-mode" id="ingModePicker">
+          <button type="button" class="meal-btn active" data-mode="all">شامل همه‌ی این مواد</button>
+          <button type="button" class="meal-btn" data-mode="only">فقط با همین مواد</button>
+        </div>
+        <p class="ing-mode-hint" id="ingModeHint"></p>
+        <input type="text" id="ingFilterSearch" class="search-input ing-filter-search" placeholder="🔍 جستجوی ماده..." autocomplete="off">
+        <div class="ing-filter-chips" id="ingFilterChips"></div>
+        <div class="ing-filter-footer">
+          <button type="button" class="btn-secondary" id="btnClearIngFilter">پاک کردن</button>
+          <button type="button" class="btn-primary" id="btnApplyIngFilter">نمایش</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- v1.10: ویرایش مواد یک غذا (از تنظیمات یا جزئیات غذا) -->
+    <div class="modal-overlay modal-top" id="dishIngModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="dishIngTitle">🥕 مواد اصلی</h2>
+          <button class="modal-close" id="btnCloseDishIng">✕</button>
+        </div>
+        <div class="form-group">
+          <div class="ing-editor" id="dishIngEditor">
+            <div class="ing-chips"></div>
+            <div class="ing-input-row">
+              <input type="text" class="ing-input" placeholder="مثلاً گوشت" enterkeyhint="done" autocomplete="off">
+              <button type="button" class="ing-add-btn" aria-label="افزودن ماده">➕</button>
+            </div>
+            <div class="suggestions ing-sugg"></div>
+          </div>
+        </div>
+        <button type="button" class="btn-primary" id="btnSaveDishIng">💾 ذخیره</button>
+      </div>
+    </div>
+
+    <!-- v1.10: تازه‌های نسخه — بعد از هر آپدیت یک‌بار -->
+    <div class="modal-overlay modal-top2" id="whatsNewModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="whatsNewTitle">✨ تازه‌های نسخه</h2>
+        </div>
+        <div id="whatsNewBody"></div>
+        <button type="button" class="btn-primary" id="btnCloseWhatsNew">متوجه شدم</button>
       </div>
     </div>
 

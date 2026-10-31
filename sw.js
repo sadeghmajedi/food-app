@@ -2,7 +2,7 @@
 // استراتژی: Network First برای فایل‌های اصلی اپ + کش برای حالت آفلاین
 // نسخهٔ کش باید هم‌زمان با APP_VERSION در script.js و version.json آپدیت شود
 
-const CACHE_VERSION = "v1.9";
+const CACHE_VERSION = "v1.10";
 const CACHE_NAME = "food-recorder-" + CACHE_VERSION;
 
 const CORE_ASSETS = [

@@ -244,6 +244,312 @@ header h1 {
   border-color: var(--primary);
 }
 
+/* ==================== v1.10: نوار فیلتر دو ردیفی و فیلتر مواد ==================== */
+.filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.filter-row .filter-select {
+  min-width: 0;
+  padding: 9px 8px;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+}
+
+.filter-ing-btn {
+  padding: 9px 12px;
+  border: 2px solid #E7DCEE;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-ing-btn.active {
+  background: var(--mint);
+  border-color: #9FDDB9;
+}
+
+.ing-active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ing-active-mode {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.ing-active-chip,
+.ing-active-clear {
+  border: none;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.ing-active-chip {
+  background: var(--mint);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ing-active-clear {
+  background: transparent;
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.ing-mode .meal-btn {
+  padding: 9px 4px;
+  font-size: 0.8rem;
+}
+
+.ing-mode-hint {
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: var(--text-light);
+  margin: 8px 2px 10px;
+}
+
+.ing-filter-search {
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+}
+
+.ing-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.ing-fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 2px solid #E7DCEE;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ing-fchip.on {
+  background: var(--mint);
+  border-color: #9FDDB9;
+  font-weight: 700;
+}
+
+.ing-fchip.dead {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.ing-fchip-n {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0 6px;
+  line-height: 1.6;
+}
+
+.ing-empty { padding: 18px 10px; }
+
+.ing-filter-footer {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.ing-filter-footer .btn-secondary { margin-top: 0; }
+
+/* ورودی چیپی مواد در فرم‌ها */
+.label-hint {
+  font-weight: 400;
+  font-size: 0.74rem;
+}
+
+.ing-editor { position: relative; }
+
+/* پیشنهادهای مواد زیر فیلد جا باز می‌کنند (نه شناور)، تا در پنجره‌ی کوچک بریده نشوند و روی فیلدهای بعدی نیفتند */
+.ing-editor .ing-sugg {
+  position: static;
+  margin-top: 6px;
+}
+
+.ing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--mint);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 4px 6px 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.ing-chip-x {
+  border: none;
+  background: rgba(59,47,74,0.1);
+  color: var(--text);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ing-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.form-group .ing-input-row input { flex: 1; min-width: 0; }
+
+.ing-add-btn {
+  flex-shrink: 0;
+  width: 46px;
+  border: 2px solid #E7DCEE;
+  border-radius: 12px;
+  background: var(--primary-light);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* مواد در جزئیات غذا و فهرست غذاهای بدون مواد */
+.food-ing-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 16px 10px 50px;
+  border-top: 1px solid #F3EEF7;
+  background: #FBFEFC;
+  font-size: 0.82rem;
+  color: var(--text-light);
+}
+
+.food-ing-row .detail-value {
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.btn-ing-small {
+  border: 1.5px solid #E7DCEE;
+  background: #fff;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.btn-ing-link {
+  border: none;
+  background: none;
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.btn-ing-add-sm {
+  background: var(--mint);
+  color: var(--text);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.h3-count {
+  font-weight: 400;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+.no-ing-msg {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  padding: 4px 2px;
+}
+
+#noIngList {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+/* پنجره‌هایی که روی تنظیمات یا بقیه باز می‌شوند */
+.modal-overlay.modal-top { z-index: 210; }
+.modal-overlay.modal-top2 { z-index: 220; }
+
+/* تازه‌های نسخه */
+.wn-ver {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 14px 0 6px;
+}
+.wn-ver:first-child { margin-top: 0; }
+.wn-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+.wn-list li {
+  position: relative;
+  font-size: 0.9rem;
+  line-height: 1.9;
+  color: var(--text);
+  padding-right: 16px;
+  margin-bottom: 6px;
+}
+.wn-list li::before {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 0.8em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+}
+
 #foodList {
   padding: 12px 16px;
 }

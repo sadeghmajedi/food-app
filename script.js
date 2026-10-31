@@ -1,5 +1,5 @@
 // ==================== تنظیمات اولیه ====================
-const APP_VERSION = "1.9";
+const APP_VERSION = "1.10";
 const DEFAULT_GROUPS = [
   "غذاهای ایرانی",
   "غذاهای فست‌فود",
@@ -27,6 +27,11 @@ let editingFoodId = null;
 let swRegistration = null;
 let selectedMeal = "";        // وعده انتخاب‌شده در فرم ثبت/ویرایش
 let statsMealFilter = "";     // فیلتر وعده در صفحه آمار ("" یعنی همه)
+let formIngEditor = null;     // v1.10: ورودی مواد در فرم ثبت/ویرایش
+let dishIngEditor = null;     // v1.10: ورودی مواد در پنجره‌ی «مواد اصلی» یک غذا
+let dishIngEditingName = null;
+let ingFilter = [];           // v1.10: مواد انتخاب‌شده در فیلتر: [{ k: کلید یکسان‌شده, l: برچسب }]
+let ingFilterMode = "all";    // "all" = شامل همه‌ی این مواد، "only" = فقط با همین مواد
 
 // ==================== یکسان‌سازی متن فارسی/عربی ====================
 // کیبورد عربی و فارسی آیفون «ی»، «ک» و ارقام را با کدهای Unicode متفاوت تولید می‌کنند
@@ -147,6 +152,136 @@ function loadGroupColors() {
 }
 function saveGroupColors(c) { setData("groupColors", c); }
 
+// ==================== مواد اصلی غذاها (v1.10) ====================
+// مواد مال «غذا» است، نه هر رکورد: dishIngredients = { نام یکسان‌شده‌ی غذا: ["گوشت", "لپه", ...] }
+// رکوردهای foods دست نمی‌خورند. اگر نام غذا عوض شود، مواد به نام جدید منتقل نمی‌شود.
+function loadDishIngredients() {
+  const m = getData("dishIngredients", {});
+  return (m && typeof m === "object" && !Array.isArray(m)) ? m : {};
+}
+function saveDishIngredients(m) { setData("dishIngredients", m); }
+
+function getDishIngredients(name, map) {
+  const m = map || loadDishIngredients();
+  const list = m[normalizeFa(name)];
+  return Array.isArray(list) ? list : [];
+}
+
+function setDishIngredients(name, list) {
+  const key = normalizeFa(name);
+  if (!key) return;
+  const m = loadDishIngredients();
+  if (list.length) m[key] = list;
+  else delete m[key];
+  saveDishIngredients(m);
+}
+
+// همه‌ی مواد شناخته‌شده: کلید یکسان‌شده → [شکل اولین ثبت، تعداد غذاهایی که آن را دارند]
+// شکل اولین ثبت برای مواد جدید استفاده می‌شود تا «گوشت» همه‌جا یکسان بماند
+function knownIngredientLabels() {
+  const seen = new Map();
+  Object.values(loadDishIngredients()).forEach((list) => {
+    (Array.isArray(list) ? list : []).forEach((label) => {
+      const k = normalizeFa(label);
+      if (!k) return;
+      const prev = seen.get(k);
+      seen.set(k, [prev ? prev[0] : label, (prev ? prev[1] : 0) + 1]);
+    });
+  });
+  return seen;
+}
+
+// ورودی چیپی مواد؛ هم در فرم ثبت و هم در پنجره‌ی «مواد اصلی» یک غذا استفاده می‌شود.
+// root باید .ing-chips، .ing-input، .ing-add-btn و .ing-sugg داشته باشد.
+// touched یعنی کاربر خودش ماده‌ای اضافه یا حذف کرده (فقط در این حالت ذخیره می‌شود).
+function createIngredientEditor(root) {
+  const chipsEl = root.querySelector(".ing-chips");
+  const input = root.querySelector(".ing-input");
+  const addBtn = root.querySelector(".ing-add-btn");
+  const sugg = root.querySelector(".ing-sugg");
+  let items = [];
+  const ed = { touched: false };
+
+  function render() {
+    chipsEl.innerHTML = items.map((label, i) =>
+      `<span class="ing-chip">${escapeHtml(label)}<button type="button" class="ing-chip-x" data-i="${i}" aria-label="حذف">✕</button></span>`
+    ).join("");
+    chipsEl.style.display = items.length ? "" : "none";
+  }
+
+  function add(raw) {
+    const known = knownIngredientLabels();
+    String(raw).split(/[،,]/).forEach((part) => {
+      const text = part.replace(/\s+/g, " ").trim();
+      const k = normalizeFa(text);
+      if (!k || items.some((x) => normalizeFa(x) === k)) return;
+      const existing = known.get(k);
+      items.push(existing ? existing[0] : text);
+      ed.touched = true;
+    });
+    render();
+  }
+
+  function commitInput() {
+    if (input.value.trim()) add(input.value);
+    input.value = "";
+  }
+
+  function showSugg() {
+    const q = normalizeFa(input.value);
+    const chosen = new Set(items.map(normalizeFa));
+    const all = [...knownIngredientLabels().entries()]
+      .filter(([k]) => !chosen.has(k))
+      .sort((a, b) => b[1][1] - a[1][1] || a[1][0].localeCompare(b[1][0], "fa"));
+    const matches = (q ? all.filter(([k]) => k.includes(q)) : all).slice(0, 12);
+    if (matches.length === 0) { sugg.classList.remove("show"); return; }
+    sugg.innerHTML = matches.map(([, [label]]) =>
+      `<div class="suggestion-item" data-label="${escapeHtml(label)}">🥕 ${escapeHtml(label)}</div>`
+    ).join("");
+    sugg.classList.add("show");
+  }
+
+  input.addEventListener("input", () => {
+    if (/[،,]/.test(input.value)) commitInput();
+    showSugg();
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); commitInput(); showSugg(); }
+  });
+  input.addEventListener("focus", showSugg);
+  input.addEventListener("blur", () => {
+    setTimeout(() => { sugg.classList.remove("show"); }, 200);
+  });
+  addBtn.addEventListener("click", () => { commitInput(); showSugg(); });
+  sugg.addEventListener("mousedown", (e) => e.preventDefault()); // فوکوس از فیلد نرود
+  sugg.addEventListener("click", (e) => {
+    const it = e.target.closest(".suggestion-item");
+    if (!it) return;
+    add(it.dataset.label);
+    input.value = "";
+    showSugg();
+  });
+  chipsEl.addEventListener("click", (e) => {
+    const b = e.target.closest(".ing-chip-x");
+    if (!b) return;
+    items.splice(Number(b.dataset.i), 1);
+    ed.touched = true;
+    render();
+  });
+
+  // متن تایپ‌شده‌ای که هنوز چیپ نشده هم حساب می‌شود
+  ed.get = () => { commitInput(); return [...items]; };
+  ed.set = (list) => {
+    items = [...list];
+    ed.touched = false;
+    input.value = "";
+    sugg.classList.remove("show");
+    render();
+  };
+  render();
+  return ed;
+}
+
 // ==================== مهاجرت داده‌های قدیمی (افزودن id) ====================
 function migrateFoodIds() {
   const foods = loadFoods();
@@ -172,7 +307,59 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     document.getElementById("splash").style.display = "none";
     document.getElementById("appContainer").style.display = "block";
+    maybeShowWhatsNew();
   }, 2800);
+
+  // v1.10: مواد اصلی و فیلتر مواد
+  formIngEditor = createIngredientEditor(document.getElementById("formIngEditor"));
+  dishIngEditor = createIngredientEditor(document.getElementById("dishIngEditor"));
+  document.getElementById("foodName").addEventListener("input", autoFillFormIngredients);
+  document.getElementById("btnOpenIngFilter").addEventListener("click", openIngFilter);
+  document.getElementById("btnCloseIngFilter").addEventListener("click", closeIngFilter);
+  document.getElementById("btnApplyIngFilter").addEventListener("click", closeIngFilter);
+  document.getElementById("btnClearIngFilter").addEventListener("click", () => {
+    ingFilter = [];
+    renderIngFilterSheet();
+    renderFoodList();
+  });
+  document.getElementById("ingFilterSearch").addEventListener("input", renderIngFilterSheet);
+  document.querySelectorAll("#ingModePicker .meal-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      ingFilterMode = btn.dataset.mode;
+      renderIngFilterSheet();
+      renderFoodList();
+    });
+  });
+  document.getElementById("ingFilterChips").addEventListener("click", (e) => {
+    const chip = e.target.closest(".ing-fchip");
+    if (!chip || chip.disabled) return;
+    toggleIngFilter(chip.dataset.k, chip.dataset.l);
+  });
+  document.getElementById("ingActive").addEventListener("click", (e) => {
+    if (e.target.closest(".ing-active-clear")) { ingFilter = []; renderFoodList(); return; }
+    const x = e.target.closest(".ing-active-chip");
+    if (x) toggleIngFilter(x.dataset.k, "");
+  });
+  document.getElementById("foodList").addEventListener("click", (e) => {
+    const b = e.target.closest(".btn-ing-edit");
+    if (b) openDishIngEditor(b.dataset.dish);
+  });
+  document.getElementById("noIngList").addEventListener("click", (e) => {
+    const b = e.target.closest(".btn-ing-edit");
+    if (b) openDishIngEditor(b.dataset.dish);
+  });
+  document.getElementById("btnCloseDishIng").addEventListener("click", closeDishIngEditor);
+  document.getElementById("btnSaveDishIng").addEventListener("click", saveDishIngEditor);
+  document.getElementById("btnCloseWhatsNew").addEventListener("click", closeWhatsNew);
+  document.getElementById("ingFilterModal").addEventListener("click", (e) => {
+    if (e.target.id === "ingFilterModal") closeIngFilter();
+  });
+  document.getElementById("dishIngModal").addEventListener("click", (e) => {
+    if (e.target.id === "dishIngModal") closeDishIngEditor();
+  });
+  document.getElementById("whatsNewModal").addEventListener("click", (e) => {
+    if (e.target.id === "whatsNewModal") closeWhatsNew();
+  });
 
   document.getElementById("btnOpenAdd").addEventListener("click", () => openAddModal());
   document.getElementById("btnCloseAdd").addEventListener("click", closeAddModal);
@@ -272,9 +459,17 @@ function openAddModal() {
   document.getElementById("foodGroup").value = "";
   selectedMeal = "";
   syncMealPicker();
+  formIngEditor.set([]);
   const today = new Date().toISOString().split("T")[0];
   document.getElementById("foodDate").value = today;
   document.getElementById("addModal").classList.add("show");
+}
+
+// v1.10: با تایپ یا انتخاب نام غذا، مواد ثبت‌شده‌ی آن غذا نمایش داده می‌شود؛
+// اگر کاربر خودش مواد را تغییر داده باشد، دست نمی‌خورد
+function autoFillFormIngredients() {
+  if (!formIngEditor || formIngEditor.touched) return;
+  formIngEditor.set(getDishIngredients(document.getElementById("foodName").value));
 }
 
 function openEditFood(id) {
@@ -294,6 +489,7 @@ function openEditFood(id) {
   document.getElementById("foodServing").value = food.serving || "";
   selectedMeal = food.meal || "";
   syncMealPicker();
+  formIngEditor.set(getDishIngredients(food.name));
   document.getElementById("addModal").classList.add("show");
 }
 
@@ -304,6 +500,7 @@ function closeAddModal() {
   document.getElementById("foodServing").value = "";
   selectedMeal = "";
   syncMealPicker();
+  formIngEditor.set([]);
   document.getElementById("suggestions").classList.remove("show");
   document.getElementById("makerSuggestions").classList.remove("show");
   document.getElementById("servingSuggestions").classList.remove("show");
@@ -415,6 +612,7 @@ function openSettingsModal() {
   document.getElementById("settingsModal").classList.add("show");
   renderGroupsInSettings();
   renderGroupColorPickers();
+  renderNoIngredientList();
 }
 
 function closeSettingsModal() {
@@ -446,7 +644,7 @@ function refreshGroupDropdowns() {
   const makers = sortAlpha(uniqueByNormalized(foods.map(f => f.maker).filter(m => m && m !== "نامشخص")));
   const sel3 = document.getElementById("filterMaker");
   const prevVal3 = sel3.value;
-  sel3.innerHTML = '<option value="">👨‍🍳 همه تهیه‌کننده‌ها</option>' +
+  sel3.innerHTML = '<option value="">👨‍🍳 تهیه‌کننده‌ها</option>' +
     makers.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
   sel3.value = prevVal3;
 }
@@ -462,6 +660,10 @@ function saveFoodEntry() {
   if (!name) { showToast("⚠️ نام غذا را وارد کنید", "error"); return; }
   if (!group) { showToast("⚠️ گروه غذا را انتخاب کنید", "error"); return; }
   if (!date) { showToast("⚠️ تاریخ را انتخاب کنید", "error"); return; }
+
+  // v1.10: مواد فقط وقتی ذخیره می‌شود که کاربر آن را تغییر داده باشد (برای همه‌ی رکوردهای این غذا)
+  const ingredients = formIngEditor.get();
+  if (formIngEditor.touched) setDishIngredients(name, ingredients);
 
   const foods = loadFoods();
 
@@ -547,6 +749,7 @@ function selectSuggestion(name) {
   if (existing) {
     document.getElementById("foodGroup").value = existing.group;
   }
+  autoFillFormIngredients();
 }
 
 // ==================== پیشنهادات هوشمند (تهیه‌کننده / مکان) ====================
@@ -610,19 +813,11 @@ function selectServingSuggestion(value) {
 }
 
 // ==================== نمایش لیست غذاها ====================
-function renderFoodList() {
+// فیلترهای جستجو، گروه و تهیه‌کننده (بدون فیلتر مواد)؛ پنجره‌ی فیلتر مواد هم روی همین نتیجه شمارش می‌کند
+function getBaseFilteredFoods(foods) {
   const searchQuery = normalizeFa(document.getElementById("searchInput").value);
   const filterGroup = document.getElementById("filterGroup").value;
   const filterMaker = document.getElementById("filterMaker").value;
-  const foods = loadFoods();
-  const colors = loadGroupColors();
-  const container = document.getElementById("foodList");
-
-  if (foods.length === 0) {
-    container.innerHTML = '<div class="empty-msg">📭 هنوز غذایی ثبت نشده.<br>برای ثبت غذا روی دکمه + بزنید.</div>';
-    return;
-  }
-
   let filtered = foods;
   if (searchQuery) {
     filtered = filtered.filter(f => normalizeFa(f.name).includes(searchQuery));
@@ -632,6 +827,138 @@ function renderFoodList() {
   }
   if (filterMaker) {
     filtered = filtered.filter(f => normalizeFa(f.maker) === normalizeFa(filterMaker));
+  }
+  return filtered;
+}
+
+// ==================== فیلتر مواد (v1.10) ====================
+// «شامل همه»: غذا همه‌ی مواد انتخاب‌شده را دارد.
+// «فقط با همین مواد»: همه‌ی مواد غذا جزو انتخاب‌هاست (غذای بدون مواد هیچ‌وقت نمایش داده نمی‌شود).
+function dishPassesIngFilter(ingKeys, selectedKeys, mode) {
+  if (selectedKeys.length === 0) return true;
+  if (mode === "only") {
+    if (ingKeys.size === 0) return false;
+    const sel = new Set(selectedKeys);
+    return [...ingKeys].every(k => sel.has(k));
+  }
+  return selectedKeys.every(k => ingKeys.has(k));
+}
+
+// غذاهای یکتا (کلید یکسان‌شده‌ی نام) → مجموعه‌ی کلید مواد
+function dishIngredientKeys(records, map) {
+  const dishes = new Map();
+  records.forEach((f) => {
+    const k = normalizeFa(f.name);
+    if (!k || dishes.has(k)) return;
+    const list = Array.isArray(map[k]) ? map[k] : [];
+    dishes.set(k, new Set(list.map(normalizeFa).filter(Boolean)));
+  });
+  return dishes;
+}
+
+function toggleIngFilter(k, label) {
+  const i = ingFilter.findIndex(x => x.k === k);
+  if (i >= 0) ingFilter.splice(i, 1);
+  else ingFilter.push({ k, l: label });
+  if (document.getElementById("ingFilterModal").classList.contains("show")) renderIngFilterSheet();
+  renderFoodList();
+}
+
+// دکمه‌ی «مواد» و چیپ‌های مواد انتخاب‌شده زیر نوار فیلتر
+function renderIngActive() {
+  const btn = document.getElementById("btnOpenIngFilter");
+  btn.textContent = ingFilter.length ? `🥕 مواد (${ingFilter.length})` : "🥕 مواد";
+  btn.classList.toggle("active", ingFilter.length > 0);
+  const box = document.getElementById("ingActive");
+  if (!ingFilter.length) { box.innerHTML = ""; box.style.display = "none"; return; }
+  const modeLabel = ingFilterMode === "only" ? "فقط با همین مواد:" : "شامل همه:";
+  box.innerHTML = `<span class="ing-active-mode">${modeLabel}</span>` +
+    ingFilter.map(x =>
+      `<button type="button" class="ing-active-chip" data-k="${escapeHtml(x.k)}">${escapeHtml(x.l)} ✕</button>`
+    ).join("") +
+    `<button type="button" class="ing-active-clear">پاک کردن</button>`;
+  box.style.display = "";
+}
+
+function openIngFilter() {
+  document.getElementById("ingFilterSearch").value = "";
+  renderIngFilterSheet();
+  document.getElementById("ingFilterModal").classList.add("show");
+}
+
+function closeIngFilter() {
+  document.getElementById("ingFilterModal").classList.remove("show");
+}
+
+function renderIngFilterSheet() {
+  document.querySelectorAll("#ingModePicker .meal-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.mode === ingFilterMode);
+  });
+  document.getElementById("ingModeHint").textContent = ingFilterMode === "only"
+    ? "غذاهایی که همه‌ی مواد اصلی‌شان جزو مواد انتخاب‌شده است؛ یعنی با همین‌ها می‌شود پخت."
+    : "غذاهایی که همه‌ی مواد انتخاب‌شده را دارند.";
+
+  const map = loadDishIngredients();
+  const dishes = dishIngredientKeys(getBaseFilteredFoods(loadFoods()), map);
+  const selectedKeys = ingFilter.map(x => x.k);
+  const countWith = (keys) =>
+    [...dishes.values()].filter(set => dishPassesIngFilter(set, keys, ingFilterMode)).length;
+
+  // مواد غذاهای موجود در نتیجه‌ی فعلی، به ترتیب تعداد غذا
+  const index = new Map();
+  dishes.forEach((set, dishKey) => {
+    (map[dishKey] || []).forEach((label) => {
+      const k = normalizeFa(label);
+      if (!k) return;
+      const prev = index.get(k);
+      index.set(k, [prev ? prev[0] : label, (prev ? prev[1] : 0) + 1]);
+    });
+  });
+  ingFilter.forEach(x => { if (!index.has(x.k)) index.set(x.k, [x.l, 0]); });
+
+  const q = normalizeFa(document.getElementById("ingFilterSearch").value);
+  const entries = [...index.entries()]
+    .filter(([k]) => !q || k.includes(q) || selectedKeys.includes(k))
+    .sort((a, b) => b[1][1] - a[1][1] || a[1][0].localeCompare(b[1][0], "fa"));
+
+  const chipsBox = document.getElementById("ingFilterChips");
+  if (index.size === 0) {
+    chipsBox.innerHTML = '<div class="empty-msg ing-empty">هنوز برای هیچ غذایی مواد ثبت نشده.<br>از ⚙️ تنظیمات ← «غذاهای بدون مواد» شروع کنید.</div>';
+  } else if (entries.length === 0) {
+    chipsBox.innerHTML = '<div class="empty-msg ing-empty">ماده‌ای با این نام پیدا نشد.</div>';
+  } else {
+    chipsBox.innerHTML = entries.map(([k, [label]]) => {
+      const on = selectedKeys.includes(k);
+      // عدد = تعداد غذاهایی که با افزودن این ماده نمایش داده می‌شوند
+      const n = on ? null : countWith([...selectedKeys, k]);
+      const dead = !on && ingFilterMode === "all" && n === 0;
+      return `<button type="button" class="ing-fchip${on ? " on" : ""}${dead ? " dead" : ""}" data-k="${escapeHtml(k)}" data-l="${escapeHtml(label)}"${dead ? " disabled" : ""}>` +
+        `${escapeHtml(label)}${n !== null ? `<span class="ing-fchip-n">${n}</span>` : ""}</button>`;
+    }).join("");
+  }
+
+  const total = countWith(selectedKeys);
+  document.getElementById("btnApplyIngFilter").textContent = `نمایش ${total} غذا`;
+}
+
+function renderFoodList() {
+  renderIngActive();
+  const foods = loadFoods();
+  const colors = loadGroupColors();
+  const container = document.getElementById("foodList");
+
+  if (foods.length === 0) {
+    container.innerHTML = '<div class="empty-msg">📭 هنوز غذایی ثبت نشده.<br>برای ثبت غذا روی دکمه + بزنید.</div>';
+    return;
+  }
+
+  const ingMap = loadDishIngredients();
+  let filtered = getBaseFilteredFoods(foods);
+  if (ingFilter.length) {
+    const dishes = dishIngredientKeys(filtered, ingMap);
+    const selectedKeys = ingFilter.map(x => x.k);
+    filtered = filtered.filter(f =>
+      dishPassesIngFilter(dishes.get(normalizeFa(f.name)) || new Set(), selectedKeys, ingFilterMode));
   }
 
   if (filtered.length === 0) {
@@ -685,6 +1012,13 @@ function renderFoodList() {
           <span class="food-arrow">▼</span>
         </div>
         <div class="food-details">`;
+
+      // v1.10: مواد اصلی یک‌بار برای کل غذا، بالای رکوردها
+      const ings = getDishIngredients(name, ingMap);
+      html += ings.length
+        ? `<div class="food-ing-row"><span class="detail-label">🥕 مواد اصلی:</span><span class="detail-value">${ings.map(escapeHtml).join("، ")}</span>
+            <button type="button" class="btn-ing-edit btn-ing-small" data-dish="${escapeHtml(name)}">✏️</button></div>`
+        : `<div class="food-ing-row"><button type="button" class="btn-ing-edit btn-ing-link" data-dish="${escapeHtml(name)}">➕ افزودن مواد اصلی</button></div>`;
 
       records.forEach(r => {
         const servingRow = r.serving
@@ -811,6 +1145,115 @@ function updateGroupColor(groupName, color) {
   showToast("✅ رنگ ذخیره شد!", "success");
 }
 
+// ==================== غذاهای بدون مواد و ویرایش مواد یک غذا (v1.10) ====================
+function renderNoIngredientList() {
+  const container = document.getElementById("noIngList");
+  const countEl = document.getElementById("noIngCount");
+  const map = loadDishIngredients();
+  const names = sortAlpha(uniqueByNormalized(loadFoods().map(f => f.name)));
+  const missing = names.filter(n => getDishIngredients(n, map).length === 0);
+  countEl.textContent = missing.length ? `(${missing.length})` : "";
+
+  if (names.length === 0) {
+    container.innerHTML = '<div class="no-ing-msg">هنوز غذایی ثبت نشده.</div>';
+    return;
+  }
+  if (missing.length === 0) {
+    container.innerHTML = '<div class="no-ing-msg">✅ برای همه‌ی غذاها مواد اصلی ثبت شده است.</div>';
+    return;
+  }
+  container.innerHTML = missing.map(n =>
+    `<div class="group-item">
+      <span class="g-name">🍽️ ${escapeHtml(n)}</span>
+      <button type="button" class="btn-ing-edit btn-ing-add-sm" data-dish="${escapeHtml(n)}">➕ مواد</button>
+    </div>`
+  ).join("");
+}
+
+function openDishIngEditor(name) {
+  dishIngEditingName = name;
+  document.getElementById("dishIngTitle").textContent = `🥕 مواد اصلی «${name}»`;
+  dishIngEditor.set(getDishIngredients(name));
+  document.getElementById("dishIngModal").classList.add("show");
+}
+
+function closeDishIngEditor() {
+  document.getElementById("dishIngModal").classList.remove("show");
+  dishIngEditingName = null;
+}
+
+function saveDishIngEditor() {
+  if (!dishIngEditingName) return;
+  const list = dishIngEditor.get();
+  setDishIngredients(dishIngEditingName, list);
+  closeDishIngEditor();
+  renderNoIngredientList();
+  renderFoodList();
+  showToast("✅ مواد ذخیره شد!", "success");
+}
+
+// ==================== تازه‌های نسخه (v1.10) ====================
+// با هر بالا رفتن نسخه، یک ورودی به ابتدای این آرایه اضافه کن (همان شماره‌ی APP_VERSION).
+// بعد از آپدیت، ورودی‌های جدیدتر از food_seen_version یک‌بار در پنجره نمایش داده می‌شوند.
+// نسخه‌ای که ورودی ندارد پنجره‌ای باز نمی‌کند. food_seen_version مخصوص دستگاه است و در پشتیبان نمی‌آید.
+const WHATS_NEW = [
+  { v: "1.10", items: [
+    "🥕 مواد اصلی هر غذا: در فرم ثبت، فیلد جدید «مواد اصلی» اضافه شد (مثلاً قیمه: گوشت، لپه، لیمو عمانی). مواد هر غذا فقط یک‌بار وارد می‌شود و دفعه‌های بعد که همان غذا را ثبت کنید، خودکار نمایش داده می‌شود.",
+    "🔍 فیلتر مواد: دکمه‌ی «مواد» در نوار فیلتر بالای لیست؛ با انتخاب هر ماده، فقط غذاهایی نمایش داده می‌شوند که همه‌ی مواد انتخاب‌شده را دارند.",
+    "🍳 حالت «فقط با همین مواد»: با روشن کردن این گزینه، غذاهایی نمایش داده می‌شوند که همه‌ی مواد اصلی‌شان جزو مواد انتخاب‌شده است؛ یعنی با همان چیزهایی که در خانه دارید می‌شود پختشان.",
+    "📋 غذاهای بدون مواد: بخش جدیدی در تنظیمات که غذاهای ثبت‌شده‌ی بدون مواد را فهرست می‌کند تا سریع تکمیل شوند.",
+    "نوار فیلتر جمع‌وجورتر شد و از سه ردیف به دو ردیف رسید.",
+    "مواد هر غذا در جزئیات آن غذا در لیست نمایش داده می‌شود و در فایل پشتیبان هم ذخیره می‌شود.",
+  ]},
+];
+
+function cmpVer(a, b) {
+  const x = String(a).split(".").map(Number);
+  const y = String(b).split(".").map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0);
+    if (d) return d > 0 ? 1 : -1;
+  }
+  return 0;
+}
+
+function markVersionSeen() {
+  try { localStorage.setItem("food_seen_version", APP_VERSION); } catch (e) {}
+}
+
+function maybeShowWhatsNew() {
+  let seen = null;
+  try { seen = localStorage.getItem("food_seen_version"); } catch (e) {}
+  // نصب تازه (بدون غذا) پنجره را نمی‌بیند؛ کاربر قدیمی‌ای که این کلید را ندارد فقط تازه‌های همین نسخه را می‌بیند
+  if (!seen) {
+    if (!loadFoods().length) { markVersionSeen(); return; }
+    seen = "0";
+  }
+  if (cmpVer(seen, APP_VERSION) >= 0) {
+    if (cmpVer(seen, APP_VERSION) > 0) markVersionSeen();
+    return;
+  }
+  const entries = WHATS_NEW
+    .filter(e => cmpVer(e.v, seen) > 0 && cmpVer(e.v, APP_VERSION) <= 0)
+    .sort((a, b) => cmpVer(b.v, a.v));
+  const shown = seen === "0" ? entries.filter(e => e.v === APP_VERSION) : entries;
+  if (!shown.length) { markVersionSeen(); return; }
+
+  document.getElementById("whatsNewTitle").textContent = shown.length === 1
+    ? `✨ تازه‌های نسخه ${shown[0].v}`
+    : "✨ تازه‌های نسخه‌های جدید";
+  document.getElementById("whatsNewBody").innerHTML = shown.map(e =>
+    (shown.length > 1 ? `<div class="wn-ver">نسخه ${escapeHtml(e.v)}</div>` : "") +
+    `<ul class="wn-list">${e.items.map(t => `<li>${escapeHtml(t)}</li>`).join("")}</ul>`
+  ).join("");
+  document.getElementById("whatsNewModal").classList.add("show");
+}
+
+function closeWhatsNew() {
+  document.getElementById("whatsNewModal").classList.remove("show");
+  markVersionSeen();
+}
+
 // ==================== آپدیت ====================
 async function checkUpdate() {
   const status = document.getElementById("updateStatus");
@@ -851,6 +1294,7 @@ function exportBackup() {
     foods: loadFoods(),
     groups: loadGroups(),
     groupColors: loadGroupColors(),
+    dishIngredients: loadDishIngredients(),
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -879,12 +1323,18 @@ function importBackup(e) {
       saveFoods(data.foods);
       if (data.groups && Array.isArray(data.groups)) saveGroups(data.groups);
       if (data.groupColors) saveGroupColors(data.groupColors);
+      // v1.10: فایل پشتیبان قدیمی مواد ندارد؛ در آن حالت مواد فعلی دست نمی‌خورد
+      if (data.dishIngredients && typeof data.dishIngredients === "object" && !Array.isArray(data.dishIngredients)) {
+        saveDishIngredients(data.dishIngredients);
+      }
+      ingFilter = [];
 
       migrateFoodIds();
       refreshGroupDropdowns();
       renderFoodList();
       renderGroupsInSettings();
       renderGroupColorPickers();
+      renderNoIngredientList();
       showToast("✅ داده‌ها بازیابی شدند!", "success");
     } catch (err) {
       showToast("❌ خطا در خواندن فایل", "error");
@@ -895,16 +1345,19 @@ function importBackup(e) {
 
 // ==================== پاک کردن ====================
 function clearAllData() {
-  if (!confirm("⚠️ تمام غذاها و گروه‌ها حذف می‌شوند. این عمل قابل بازگشت نیست!")) return;
+  if (!confirm("⚠️ تمام غذاها، گروه‌ها و مواد غذاها حذف می‌شوند. این عمل قابل بازگشت نیست!")) return;
   if (!confirm("آیا واقعاً مطمئن هستید؟")) return;
 
   saveFoods([]);
   saveGroups([...DEFAULT_GROUPS]);
   saveGroupColors({ ...DEFAULT_GROUP_COLORS });
+  saveDishIngredients({});
+  ingFilter = [];
 
   refreshGroupDropdowns();
   renderFoodList();
   renderGroupsInSettings();
   renderGroupColorPickers();
+  renderNoIngredientList();
   showToast("✅ همه داده‌ها پاک شدند!", "success");
 }
